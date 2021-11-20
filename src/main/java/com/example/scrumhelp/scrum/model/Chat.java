@@ -2,14 +2,13 @@ package com.example.scrumhelp.scrum.model;
 
 import javax.persistence.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Entity(name = "Chat")
 @Table(name = "chat")
 public class Chat {
-
     @Id
+    @Column(name = "id", updatable = false)
     private Long id;
 
     //TODO: refactor FetchType.EAGER
@@ -53,12 +52,4 @@ public class Chat {
     public List<ChatMember> getChatMembers() {
         return this.chatMembers;
     }
-
-//    @Override
-//    public String toString() {
-//        return "Chat{" +
-//                "id=" + id +
-////                ", chatMembers=" + chatMembers +
-//                '}';
-//    }
 }

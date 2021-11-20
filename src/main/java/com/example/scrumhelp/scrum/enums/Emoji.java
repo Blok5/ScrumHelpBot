@@ -4,7 +4,12 @@ public enum Emoji {
     Memo("\uD83D\uDCDD"),
     YawningFace("\uD83E\uDD71"),
     PartyingFace("\uD83E\uDD73"),
-    OkHad("\uD83D\uDC4C");
+    OkHad("\uD83D\uDC4C"),
+    CheckMarkButton("✅"),
+    CrossMark("❌"),
+    RedExclamation("❗"),
+    PoliceOfficer("👮");
+
 
     private String text;
 
@@ -14,5 +19,11 @@ public enum Emoji {
 
     public String getText() {
         return text;
+    }
+
+
+    @Override
+    public String toString() {
+        return getText();
     }
 }
