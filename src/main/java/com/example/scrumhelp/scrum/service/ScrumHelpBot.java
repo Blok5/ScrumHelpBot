@@ -68,7 +68,7 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
     }
 
     private SendMessage sendDailyReminderEnableMessage(Long chatId) {
-        CronTrigger trigger = new CronTrigger("*/10 * * * * ?");//"0 29 10 ? * MON-FRI")
+        CronTrigger trigger = new CronTrigger("0 29 10 ? * MON-FRI");//"*/40 * * * * ?")
         if (!scheduledFutureStoreComponent.checkExist(chatId)) {
             scheduledFutureStoreComponent
                     .add(chatId, threadPoolTaskScheduler.schedule(new RemindDailyTask(chatId), trigger));

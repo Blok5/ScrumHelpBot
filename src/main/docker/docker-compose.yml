@@ -1,0 +1,29 @@
+x-aws-vps: "vpc-0517a2f5be449ec37"
+x-aws-protocol: http
+services:
+  scrumhelpapp:
+    ports:
+      - "8080:8080"
+    image: 'simakoff/scrumhelpapp:latest'
+    build:
+      context: .
+    container_name: scrumhelpapp
+    depends_on:
+      - db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/scrumhelp
+      - SPRING_DATASOURCE_USERNAME=
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+#    env_file:
+#      - prom.env
+  db:
+    image: 'postgres:13.1-alpine'
+    ports:
+      - "5432:5432"
+    restart: always
+    container_name: db
+    environment:
+      - POSTGRES_USER=
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=scrumhelp

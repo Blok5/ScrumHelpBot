@@ -73,8 +73,9 @@ public class ScrumHelpBotService {
     }
 
     public SendMessage sendRemindDailyMessage(Long chatId) {
-        Optional<ChatMember> facilitator =
-                chatMemberRepository.findFacilitatorByChat(chatRepository.findById(chatId).orElseThrow());
+        Optional<ChatMember> facilitator = chatMemberRepository.findFacilitatorByChatAndFacilitator(
+                        chatRepository.findById(chatId).orElseThrow(), true
+        );
 
         String name = facilitator.isPresent() ? facilitator.get().getUserName() : "Не назначен!";
 
@@ -158,7 +159,9 @@ public class ScrumHelpBotService {
     @Transactional
     public SendMessage sendNewFacilitatorSelectedMessage(Long chatId, String callbackData) {
         Optional<ChatMember> currentFacilitatorOptional =
-                chatMemberRepository.findFacilitatorByChat(chatRepository.findById(chatId).orElseThrow());
+                chatMemberRepository.findFacilitatorByChatAndFacilitator(
+                        chatRepository.findById(chatId).orElseThrow(), true
+                );
 
         if (currentFacilitatorOptional.isPresent()) {
             ChatMember currentFacilitator = currentFacilitatorOptional.get();
@@ -178,7 +181,6 @@ public class ScrumHelpBotService {
             log.info(String.format("For chat %s selected new facilitator %s", chatId, chatMember.getUserName()));
         } else {
             sendMessage.setText(String.format("Участник с id: %s не найден", newFacilitatorId));
-
             log.warn(String.format("Chat member with id %s does not exist", newFacilitatorId));
         }
 

@@ -31,8 +31,8 @@ public class ScheduledSelectFacilitatorComponent {
         this.taskExecutor = taskExecutor;
     }
 
-    //"0 45 10 ? * MON-FRI"
-    @Scheduled(cron = "*/30 * * * * ?")
+    //"10 * * * * ?"
+    @Scheduled(cron = "0 45 10 ? * MON-FRI")
     private void schedule() {
         List<Chat> chats = scrumHelpBotService.getAllChats();
         if (chats.isEmpty()) {

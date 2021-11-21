@@ -13,8 +13,8 @@ import java.util.Optional;
 @Repository
 public interface ChatMemberRepository extends JpaRepository<ChatMember, Long> {
 
-    @Query("SELECT c FROM ChatMember c WHERE c.isFacilitator = true and c.chat = ?1")
-    Optional<ChatMember> findFacilitatorByChat(Chat chat);
+    @Query("SELECT c FROM ChatMember c WHERE c.chat = ?1 and c.isFacilitator = ?2")
+    Optional<ChatMember> findFacilitatorByChatAndFacilitator(Chat chat, boolean isFacilitator);
 
     @Query(value = "SELECT * FROM chatmember WHERE chat_id = :chatId", nativeQuery = true)
     List<ChatMember> findAllByChat(@Param("chatId") Long chatId);
