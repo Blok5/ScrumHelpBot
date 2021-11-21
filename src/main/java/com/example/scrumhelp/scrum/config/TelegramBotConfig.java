@@ -1,9 +1,7 @@
 package com.example.scrumhelp.scrum.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
-@Configuration
 @ConfigurationProperties(prefix = "telegram.bot")
 public class TelegramBotConfig {
     private String botToken;
@@ -27,7 +25,7 @@ public class TelegramBotConfig {
 
     @Override
     public String toString() {
-        return "TelegramConfig{" +
+        return "TelegramBotConfig{" +
                 "botToken='" + botToken + '\'' +
                 ", botUserName='" + botUserName + '\'' +
                 '}';

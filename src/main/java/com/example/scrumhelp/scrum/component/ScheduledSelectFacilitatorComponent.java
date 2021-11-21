@@ -3,8 +3,7 @@ package com.example.scrumhelp.scrum.component;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.service.ScrumHelpBot;
 import com.example.scrumhelp.scrum.service.ScrumHelpBotService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -16,8 +15,8 @@ import java.util.List;
 
 @Component
 @EnableScheduling
+@Slf4j
 public class ScheduledSelectFacilitatorComponent {
-    private final static Logger log = LoggerFactory.getLogger(ScheduledSelectFacilitatorComponent.class);
     private final ScrumHelpBot scrumHelpBot;
     private final ScrumHelpBotService scrumHelpBotService;
     private final TaskExecutor taskExecutor;
@@ -32,8 +31,8 @@ public class ScheduledSelectFacilitatorComponent {
         this.taskExecutor = taskExecutor;
     }
 
-    //0 29 10 ? * MON-FRI
-    @Scheduled(cron = "0 45 10 ? * MON-FRI")
+    //"0 45 10 ? * MON-FRI"
+    @Scheduled(cron = "*/30 * * * * ?")
     private void schedule() {
         List<Chat> chats = scrumHelpBotService.getAllChats();
         if (chats.isEmpty()) {

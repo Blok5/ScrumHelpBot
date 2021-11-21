@@ -1,14 +1,15 @@
 package com.example.scrumhelp.scrum.service;
 
+import com.example.scrumhelp.scrum.enums.DailyReminderState;
 import com.example.scrumhelp.scrum.enums.Emoji;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.repository.ChatMemberRepository;
 import com.example.scrumhelp.scrum.repository.ChatRepository;
 import eye2web.modelmapper.ModelMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.Trigger;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
@@ -21,12 +22,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.example.scrumhelp.scrum.enums.Emoji.OkHad;
-import static com.example.scrumhelp.scrum.enums.Emoji.PoliceOfficer;
+import static com.example.scrumhelp.scrum.enums.Emoji.*;
 
 @Service
+@Slf4j
 public class ScrumHelpBotService {
-    private final static Logger log = LoggerFactory.getLogger(ScrumHelpBotService.class);
     private final ChatMemberRepository chatMemberRepository;
     private final ChatRepository chatRepository;
     private final ModelMapper modelMapper;
@@ -34,11 +34,60 @@ public class ScrumHelpBotService {
     @Autowired
     public ScrumHelpBotService(ChatMemberRepository chatMemberRepository,
                                ChatRepository chatRepository,
-                               ModelMapper modelMapper)
-    {
+                               ModelMapper modelMapper) {
         this.chatMemberRepository = chatMemberRepository;
         this.chatRepository = chatRepository;
         this.modelMapper = modelMapper;
+    }
+
+    public SendMessage sendDailyReminderMessage(Long chatId,
+                                                       DailyReminderState dailyReminderState,
+                                                       Trigger trigger) {
+        SendMessage sendMessage = new SendMessage();
+
+        switch (dailyReminderState) {
+            case TurnedOff: {
+                sendMessage.setText("Напоминание о дейли выключено!" + CrossMark);
+                log.info("Daily reminder for chat " + chatId + " disabled!");
+                break;
+            }
+            case NotSet:{
+                sendMessage.setText("Напоминание о дейли еще не установлено!" + RedExclamation +
+                        "\nДля включения напоминания /enableDailyReminder");
+                break;
+            }
+            case TurnedOn: {
+                sendMessage.setText("Напоминание о дейли включено!" + CheckMarkButton + "\n"
+                        + trigger + "\nДля выключения напоминания:\n/disableDailyReminder");
+                break;
+            }
+            case AlreadySet: {
+                sendMessage.setText("Напоминание о дейли уже установлено!" + RedExclamation +
+                        "\nВремя напоминания: " + trigger);
+                break;
+            }
+        }
+
+        sendMessage.setChatId(chatId.toString());
+        return sendMessage;
+    }
+
+    public SendMessage sendRemindDailyMessage(Long chatId) {
+        Optional<ChatMember> facilitator =
+                chatMemberRepository.findFacilitatorByChat(chatRepository.findById(chatId).orElseThrow());
+
+        String name = facilitator.isPresent() ? facilitator.get().getUserName() : "Не назначен!";
+
+        String remindText = Emoji.YawningFace.getText() +
+                "В 10:30 начнется Daily!\n\n" +
+                Emoji.Memo.getText() + "Вспомни:\n" +
+                "Что сделано вчера?\n" +
+                "Что будет сделано сегодня?\n" +
+                "С какими проблемами столкнулся?\n\n" +
+                "Сегодня фасилитатор:\n" +
+                name;
+
+        return new SendMessage(chatId.toString(), remindText);
     }
 
     public SendMessage sendRegisterUserMessage(Long chatId, User fromUser) {
@@ -90,7 +139,7 @@ public class ScrumHelpBotService {
         keyboardMarkup.setKeyboard(keyboardButtonsRowList);
 
         SendMessage sendMessage =
-                new SendMessage(chatId.toString(), "Выбери следующего фасилитатора:"+PoliceOfficer);
+                new SendMessage(chatId.toString(), "Выбери следующего фасилитатора:" + PoliceOfficer);
         sendMessage.setReplyMarkup(keyboardMarkup);
         return sendMessage;
     }
@@ -142,12 +191,6 @@ public class ScrumHelpBotService {
         editMessageReplyMarkup.setChatId(chatId.toString());
         editMessageReplyMarkup.setMessageId(messageId);
         return editMessageReplyMarkup;
-    }
-
-    public String getFacilitator(Long chatId) {
-        Optional<ChatMember> facilitator =
-                chatMemberRepository.findFacilitatorByChat(chatRepository.findById(chatId).orElseThrow());
-        return facilitator.isPresent() ? facilitator.get().getUserName() : "Не назначен!";
     }
 
     public List<Chat> getAllChats() {
