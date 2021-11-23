@@ -16,7 +16,13 @@ public class ChatMember {
     private String userName;
 
     @Column(name = "isfacilitator")
-    private boolean isFacilitator;
+    private Boolean isFacilitator;
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
 
     @ManyToOne()
     @JoinColumn(
@@ -27,10 +33,17 @@ public class ChatMember {
     )
     private Chat chat;
 
-    public ChatMember(Long id, String userName, boolean isFacilitator) {
+    public ChatMember(Long id,
+                      String userName,
+                      Boolean isFacilitator,
+                      String firstName,
+                      String lastName)
+    {
         this.id = id;
         this.userName = userName;
         this.isFacilitator = isFacilitator;
+        this.firstName = firstName;
+        this.lastName = lastName;
     }
 
     public ChatMember() {
@@ -60,20 +73,62 @@ public class ChatMember {
         this.userName = userName;
     }
 
-    public boolean isFacilitator() {
+    public Boolean getFacilitator() {
         return isFacilitator;
     }
 
-    public void setFacilitator(boolean facilitator) {
+    public void setFacilitator(Boolean facilitator) {
         isFacilitator = facilitator;
     }
 
-//    @Override
-//    public String toString() {
-//        return "ChatMember{" +
-//                "id=" + id +
-//                ", userName='" + userName + '\'' +
-//                ", isFacilitator=" + isFacilitator +
-//                '}';
-//    }
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getChatName() {
+        if (getUserName() == null) {
+            if (!getFullName().equals("")) {
+                return getFullName();
+            } else {
+                return getId().toString();
+            }
+        }
+        return getUserName();
+    }
+
+    private String getFullName() {
+        String result = "";
+
+        if (getFirstName() != null) {
+            result += getFirstName();
+        }
+        if (getLastName() != null) {
+            result += getLastName();
+        }
+
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ChatMember{" +
+                "id=" + id +
+                ", userName='" + userName + '\'' +
+                ", isFacilitator=" + isFacilitator +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                '}';
+    }
 }

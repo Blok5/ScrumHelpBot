@@ -1,12 +1,12 @@
 telegram:
   bot:
-    botUserName: ${BOT_USER_NAME}
-    botToken: ${BOT_TOKEN}
+    botUserName:
+    botToken:
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     password: ${DB_PASSWORD}
-    url: ${DB_URL}
+    url:
     username: ${DB_USERNAME}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect

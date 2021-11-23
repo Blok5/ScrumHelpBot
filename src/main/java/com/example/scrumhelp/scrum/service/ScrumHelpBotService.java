@@ -9,7 +9,6 @@ import com.example.scrumhelp.scrum.repository.ChatRepository;
 import eye2web.modelmapper.ModelMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.Trigger;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
@@ -40,11 +39,8 @@ public class ScrumHelpBotService {
         this.modelMapper = modelMapper;
     }
 
-    public SendMessage sendDailyReminderMessage(Long chatId,
-                                                       DailyReminderState dailyReminderState,
-                                                       Trigger trigger) {
+    public SendMessage sendDailyReminderMessage(Long chatId, DailyReminderState dailyReminderState) {
         SendMessage sendMessage = new SendMessage();
-
         switch (dailyReminderState) {
             case TurnedOff: {
                 sendMessage.setText("Напоминание о дейли выключено!" + CrossMark);
@@ -57,17 +53,15 @@ public class ScrumHelpBotService {
                 break;
             }
             case TurnedOn: {
-                sendMessage.setText("Напоминание о дейли включено!" + CheckMarkButton + "\n"
-                        + trigger + "\nДля выключения напоминания:\n/disableDailyReminder");
+                sendMessage.setText("Напоминание о дейли включено!" + CheckMarkButton + "\n" +
+                        "Для выключения напоминания:\n/disableDailyReminder");
                 break;
             }
             case AlreadySet: {
-                sendMessage.setText("Напоминание о дейли уже установлено!" + RedExclamation +
-                        "\nВремя напоминания: " + trigger);
+                sendMessage.setText("Напоминание о дейли уже установлено!" + RedExclamation);
                 break;
             }
         }
-
         sendMessage.setChatId(chatId.toString());
         return sendMessage;
     }
@@ -77,7 +71,7 @@ public class ScrumHelpBotService {
                         chatRepository.findById(chatId).orElseThrow(), true
         );
 
-        String name = facilitator.isPresent() ? facilitator.get().getUserName() : "Не назначен!";
+        String name = facilitator.isPresent() ? facilitator.get().getChatName() : "Не назначен!";
 
         String remindText = Emoji.YawningFace.getText() +
                 "В 10:30 начнется Daily!\n\n" +
@@ -98,7 +92,9 @@ public class ScrumHelpBotService {
         StringBuilder responseText = new StringBuilder();
 
         if (chatMemberOptional.isPresent()) {
-            String userName = chatMemberOptional.get().getUserName();
+            ChatMember chatMember = chatMemberOptional.get();
+            String userName = chatMember.getChatName();
+
             responseText.append("Пользователь ").append(userName).append(" уже зарегистрирован!").append(OkHad);
             log.warn(userName + " already exist!");
         } else {
@@ -106,12 +102,16 @@ public class ScrumHelpBotService {
             chat.addChatMember(chatMember);
             chatRepository.save(chat);
 
-            responseText.append("Пользователь ").append(chatMember.getUserName()).append(" успешно зарегистрирован!")
+            String userName = chatMember.getChatName();
+
+            responseText.append("Пользователь ").append(userName).append(" успешно зарегистрирован!")
                     .append(Emoji.PartyingFace)
                     .append("\n\nЗарегистрированные пользователи:\n");
-            chat.getChatMembers().forEach(cm -> responseText.append(cm.getUserName()).append("\n"));
 
-            log.info(chatMember.getUserName() + " user registered successfully!");
+            chat.getChatMembers().forEach(
+                    cm -> responseText.append(cm.getChatName()).append("\n"));
+
+            log.info(chatMember.getChatName() + " user registered successfully!");
         }
 
         SendMessage sendMessage = new SendMessage();
@@ -129,7 +129,7 @@ public class ScrumHelpBotService {
         if (chatMembers.size() > 0) {
             for (ChatMember chatMember : chatMembers) {
                 InlineKeyboardButton button = new InlineKeyboardButton();
-                button.setText(chatMember.getUserName());
+                button.setText(chatMember.getChatName());
                 button.setCallbackData("/newFacilitator " + chatMember.getId());
                 keyboardButtonsRow.add(button);
             }
@@ -149,10 +149,10 @@ public class ScrumHelpBotService {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId.toString());
         sendMessage.setText("Список возможных команд:\n" +
-                "/register\n" +
-                "/setFacilitator\n" +
-                "/enableDailyReminder\n" +
-                "/disableDailyReminder");
+                "/register - регистрация пользователя\n" +
+                "/setFacilitator - выбор фасилитатора\n" +
+                "/enableDailyReminder - включить напоминание о дейли\n" +
+                "/disableDailyReminder- выключить напоминание о дейли");
         return sendMessage;
     }
 
@@ -176,9 +176,9 @@ public class ScrumHelpBotService {
         if (newFacilitator.isPresent()) {
             ChatMember chatMember = newFacilitator.get();
             chatMember.setFacilitator(true);
-            sendMessage.setText(String.format("Следующий фасилитатор: %s", chatMember.getUserName()));
+            sendMessage.setText(String.format("Следующий фасилитатор: %s", chatMember.getChatName()));
 
-            log.info(String.format("For chat %s selected new facilitator %s", chatId, chatMember.getUserName()));
+            log.info(String.format("For chat %s selected new facilitator %s", chatId, chatMember.getChatName()));
         } else {
             sendMessage.setText(String.format("Участник с id: %s не найден", newFacilitatorId));
             log.warn(String.format("Chat member with id %s does not exist", newFacilitatorId));

@@ -13,6 +13,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.TimeZone;
+
 import static com.example.scrumhelp.scrum.enums.DailyReminderState.*;
 
 @Service
@@ -28,7 +30,8 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
     public ScrumHelpBot(ScrumHelpBotService scrumHelpBotService,
                         TelegramBotConfig telegramBotConfig,
                         ThreadPoolTaskScheduler threadPoolTaskScheduler,
-                        ScheduledFutureStoreComponent scheduledFutureStoreComponent) {
+                        ScheduledFutureStoreComponent scheduledFutureStoreComponent)
+    {
         this.scrumHelpBotService = scrumHelpBotService;
         this.telegramBotConfig = telegramBotConfig;
         this.threadPoolTaskScheduler = threadPoolTaskScheduler;
@@ -42,8 +45,7 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                 if (update.getCallbackQuery().getData().contains("/newFacilitator")) {
                     Long chatId = update.getCallbackQuery().getMessage().getChatId();
                     execute(scrumHelpBotService.removeMarkupFromPreviousMessage(chatId, update.getCallbackQuery().getMessage().getMessageId()));
-                    execute(scrumHelpBotService.sendNewFacilitatorSelectedMessage(chatId, update.getCallbackQuery().getData())
-                    );
+                    execute(scrumHelpBotService.sendNewFacilitatorSelectedMessage(chatId, update.getCallbackQuery().getData()));
                 }
             } else {
                 String messageText = update.getMessage().getText();
@@ -62,29 +64,32 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                 }
             }
         } catch (TelegramApiException e) {
-            e.printStackTrace();
             log.error(e.getMessage());
         }
     }
 
     private SendMessage sendDailyReminderEnableMessage(Long chatId) {
-        CronTrigger trigger = new CronTrigger("0 29 10 ? * MON-FRI");//"*/40 * * * * ?")
         if (!scheduledFutureStoreComponent.checkExist(chatId)) {
-            scheduledFutureStoreComponent
-                    .add(chatId, threadPoolTaskScheduler.schedule(new RemindDailyTask(chatId), trigger));
-            log.info("ScheduleDailyRemindManager schedule new RemindDailyTask: " + trigger);
-            return scrumHelpBotService.sendDailyReminderMessage(chatId, TurnedOn, trigger);
-        } else {
-            return scrumHelpBotService.sendDailyReminderMessage(chatId, AlreadySet, trigger);
+            scheduledFutureStoreComponent.add(chatId, threadPoolTaskScheduler.schedule(() -> {
+                try {
+                    execute(scrumHelpBotService.sendRemindDailyMessage(chatId));
+                } catch (TelegramApiException e) {
+                    e.printStackTrace();
+                }
+            }, new CronTrigger("0 29 10 ? * MON-FRI", TimeZone.getTimeZone("Europe/Moscow"))));
+
+            log.info("ScheduleDailyRemindManager schedule new RemindDailyTask: 0 29 10 ? * MON-FRI");
+            return scrumHelpBotService.sendDailyReminderMessage(chatId, TurnedOn);
         }
+        return scrumHelpBotService.sendDailyReminderMessage(chatId, AlreadySet);
     }
 
     private SendMessage sendDailyReminderDisableMessage(Long chatId) {
         if (scheduledFutureStoreComponent.checkExist(chatId)) {
             scheduledFutureStoreComponent.remove(chatId);
-            return scrumHelpBotService.sendDailyReminderMessage(chatId, TurnedOff, null);
+            return scrumHelpBotService.sendDailyReminderMessage(chatId, TurnedOff);
         } else {
-            return scrumHelpBotService.sendDailyReminderMessage(chatId, NotSet,null);
+            return scrumHelpBotService.sendDailyReminderMessage(chatId, NotSet);
         }
     }
 
@@ -96,25 +101,6 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
     @Override
     public String getBotUsername() {
         return telegramBotConfig.getBotUserName();
-    }
-
-    private class RemindDailyTask implements Runnable {
-        private final Long chatId;
-
-        public RemindDailyTask(Long chatId) {
-            this.chatId = chatId;
-        }
-
-        @Override
-        public void run() {
-            try {
-                log.info(Thread.currentThread().getName() + " Running RemindDailyTask for chatId: " + chatId);
-                execute(scrumHelpBotService.sendRemindDailyMessage(chatId));
-                log.info(Thread.currentThread().getName() + " Finished RemindDailyTask for chatId: " + chatId);
-            } catch (TelegramApiException e) {
-                log.error(e.getMessage());
-            }
-        }
     }
 }
 
