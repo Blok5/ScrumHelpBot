@@ -4,7 +4,9 @@ import com.example.scrumhelp.scrum.enums.DailyReminderState;
 import com.example.scrumhelp.scrum.enums.Emoji;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
+import com.example.scrumhelp.scrum.model.Member;
 import com.example.scrumhelp.scrum.repository.ChatMemberRepository;
+import com.example.scrumhelp.scrum.repository.MemberRepository;
 import com.example.scrumhelp.scrum.repository.ChatRepository;
 import eye2web.modelmapper.ModelMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -26,17 +28,43 @@ import static com.example.scrumhelp.scrum.enums.Emoji.*;
 @Service
 @Slf4j
 public class ScrumHelpBotService {
-    private final ChatMemberRepository chatMemberRepository;
+    private final MemberRepository memberRepository;
     private final ChatRepository chatRepository;
+    private final ChatMemberRepository chatMemberRepository;
     private final ModelMapper modelMapper;
 
     @Autowired
-    public ScrumHelpBotService(ChatMemberRepository chatMemberRepository,
+    public ScrumHelpBotService(MemberRepository memberRepository,
                                ChatRepository chatRepository,
-                               ModelMapper modelMapper) {
-        this.chatMemberRepository = chatMemberRepository;
+                               ChatMemberRepository chatMemberRepository,
+                               ModelMapper modelMapper)
+    {
+        this.memberRepository = memberRepository;
         this.chatRepository = chatRepository;
+        this.chatMemberRepository = chatMemberRepository;
         this.modelMapper = modelMapper;
+    }
+
+    public SendMessage sendRegisterUserMessage(Long chatId, User fromUser) {
+        StringBuilder responseText = new StringBuilder();
+        Member member = memberRepository.findById(fromUser.getId()).orElse(modelMapper.map(fromUser, Member.class));
+
+        chatMemberRepository.findChatMemberByChat_IdAndAndMember_Id(chatId, member.getId()).ifPresentOrElse(
+                chatMember -> {
+                    responseText.append("Пользователь ").append(member.getNickNamne()).append(" уже зарегистрирован!").append(OkHad);
+                    log.warn(member.getNickNamne() + " already exist!");
+                }, () -> {
+                    Chat chat = chatRepository.findById(chatId).orElse(new Chat(chatId));
+                    memberRepository.save(member);
+                    chat.addMember(member);
+                    chatRepository.save(chat);
+
+                    responseText.append("Пользователь ").append(member.getNickNamne())
+                            .append(" успешно зарегистрирован!").append(Emoji.PartyingFace);
+                    log.info(member.getNickNamne() + " user registered for chat: " + chatId + " successfully!");
+                });
+
+        return new SendMessage(chatId.toString(), responseText.toString());
     }
 
     public SendMessage sendDailyReminderMessage(Long chatId, DailyReminderState dailyReminderState) {
@@ -47,7 +75,7 @@ public class ScrumHelpBotService {
                 log.info("Daily reminder for chat " + chatId + " disabled!");
                 break;
             }
-            case NotSet:{
+            case NotSet: {
                 sendMessage.setText("Напоминание о дейли еще не установлено!" + RedExclamation +
                         "\nДля включения напоминания /enableDailyReminder");
                 break;
@@ -67,11 +95,8 @@ public class ScrumHelpBotService {
     }
 
     public SendMessage sendRemindDailyMessage(Long chatId) {
-        Optional<ChatMember> facilitator = chatMemberRepository.findFacilitatorByChatAndFacilitator(
-                        chatRepository.findById(chatId).orElseThrow(), true
-        );
-
-        String name = facilitator.isPresent() ? facilitator.get().getChatName() : "Не назначен!";
+        Optional<ChatMember> chatMember = chatMemberRepository.findChatMemberByChat_IdAndIsFacilitator(chatId, true);
+        String name = chatMember.isPresent() ? chatMember.get().getMember().getNickNamne() : "Не назначен!";
 
         String remindText = Emoji.YawningFace.getText() +
                 "В 10:30 начнется Daily!\n\n" +
@@ -85,107 +110,84 @@ public class ScrumHelpBotService {
         return new SendMessage(chatId.toString(), remindText);
     }
 
-    public SendMessage sendRegisterUserMessage(Long chatId, User fromUser) {
-        Chat chat = chatRepository.findById(chatId).orElse(new Chat(chatId));
-        Optional<ChatMember> chatMemberOptional = chatMemberRepository.findById(fromUser.getId());
-
-        StringBuilder responseText = new StringBuilder();
-
-        if (chatMemberOptional.isPresent()) {
-            ChatMember chatMember = chatMemberOptional.get();
-            String userName = chatMember.getChatName();
-
-            responseText.append("Пользователь ").append(userName).append(" уже зарегистрирован!").append(OkHad);
-            log.warn(userName + " already exist!");
-        } else {
-            ChatMember chatMember = modelMapper.map(fromUser, ChatMember.class);
-            chat.addChatMember(chatMember);
-            chatRepository.save(chat);
-
-            String userName = chatMember.getChatName();
-
-            responseText.append("Пользователь ").append(userName).append(" успешно зарегистрирован!")
-                    .append(Emoji.PartyingFace)
-                    .append("\n\nЗарегистрированные пользователи:\n");
-
-            chat.getChatMembers().forEach(
-                    cm -> responseText.append(cm.getChatName()).append("\n"));
-
-            log.info(chatMember.getChatName() + " user registered successfully!");
-        }
-
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setText(responseText.toString());
-        sendMessage.setChatId(chatId.toString());
-        return sendMessage;
-    }
-
     public SendMessage sendSelectFacilitatorMessage(Long chatId) {
-        List<ChatMember> chatMembers = chatMemberRepository.findAllByChat(chatId);
-
-        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-        List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
-
-        if (chatMembers.size() > 0) {
-            for (ChatMember chatMember : chatMembers) {
-                InlineKeyboardButton button = new InlineKeyboardButton();
-                button.setText(chatMember.getChatName());
-                button.setCallbackData("/newFacilitator " + chatMember.getId());
-                keyboardButtonsRow.add(button);
-            }
-        }
+        Optional<List<ChatMember>> chatMembers = chatMemberRepository.findAllByChat_Id(chatId);
 
         List<List<InlineKeyboardButton>> keyboardButtonsRowList = new ArrayList<>();
-        keyboardButtonsRowList.add(keyboardButtonsRow);
-        keyboardMarkup.setKeyboard(keyboardButtonsRowList);
+        List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
 
-        SendMessage sendMessage =
-                new SendMessage(chatId.toString(), "Выбери следующего фасилитатора:" + PoliceOfficer);
-        sendMessage.setReplyMarkup(keyboardMarkup);
-        return sendMessage;
-    }
+        if (chatMembers.isPresent()) {
+            for (ChatMember chatMember : chatMembers.get()) {
+                InlineKeyboardButton button = new InlineKeyboardButton();
+                button.setText(chatMember.getMember().getNickNamne());
+                button.setCallbackData("/newFacilitator " + chatMember.getMember().getId());
 
-    public SendMessage sendHelpMessage(Long chatId) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId.toString());
-        sendMessage.setText("Список возможных команд:\n" +
-                "/register - регистрация пользователя\n" +
-                "/setFacilitator - выбор фасилитатора\n" +
-                "/enableDailyReminder - включить напоминание о дейли\n" +
-                "/disableDailyReminder- выключить напоминание о дейли");
-        return sendMessage;
+                keyboardButtonsRow.add(button);
+                if (keyboardButtonsRow.size() == 2) {
+                    keyboardButtonsRowList.add(keyboardButtonsRow);
+                    keyboardButtonsRow = new ArrayList<>();
+                }
+            }
+
+            if (!keyboardButtonsRow.isEmpty()) {
+                keyboardButtonsRowList.add(keyboardButtonsRow);
+            }
+
+            InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+            keyboardMarkup.setKeyboard(keyboardButtonsRowList);
+
+            SendMessage sendMessage = new SendMessage(chatId.toString(), "Выбери следующего фасилитатора:" + PoliceOfficer);
+            sendMessage.setReplyMarkup(keyboardMarkup);
+            return sendMessage;
+        }
+
+        return new SendMessage(chatId.toString(), "Список зарегистрированных пользователей пуст");
     }
 
     @Transactional
     public SendMessage sendNewFacilitatorSelectedMessage(Long chatId, String callbackData) {
-        Optional<ChatMember> currentFacilitatorOptional =
-                chatMemberRepository.findFacilitatorByChatAndFacilitator(
-                        chatRepository.findById(chatId).orElseThrow(), true
-                );
-
-        if (currentFacilitatorOptional.isPresent()) {
-            ChatMember currentFacilitator = currentFacilitatorOptional.get();
-            currentFacilitator.setFacilitator(false);
-            chatMemberRepository.save(currentFacilitator);
-        }
-
-        Long newFacilitatorId = Long.parseLong(callbackData.split(" ")[1]);
-        Optional<ChatMember> newFacilitator = chatMemberRepository.findById(newFacilitatorId);
-
         SendMessage sendMessage = new SendMessage();
-        if (newFacilitator.isPresent()) {
-            ChatMember chatMember = newFacilitator.get();
-            chatMember.setFacilitator(true);
-            sendMessage.setText(String.format("Следующий фасилитатор: %s", chatMember.getChatName()));
-
-            log.info(String.format("For chat %s selected new facilitator %s", chatId, chatMember.getChatName()));
-        } else {
-            sendMessage.setText(String.format("Участник с id: %s не найден", newFacilitatorId));
-            log.warn(String.format("Chat member with id %s does not exist", newFacilitatorId));
-        }
-
         sendMessage.setChatId(chatId.toString());
+        Long newFacilitatorId = Long.parseLong(callbackData.split(" ")[1]);
+
+        chatMemberRepository.findChatMemberByChat_IdAndIsFacilitator(chatId, true)
+                .ifPresent(chatMember -> {
+                    chatMember.setIsFacilitator(false);
+                    chatMemberRepository.save(chatMember);
+                });
+
+        chatMemberRepository.findChatMemberByChat_IdAndAndMember_Id(chatId, newFacilitatorId).ifPresentOrElse(
+                chatMember -> {
+                    chatMember.setIsFacilitator(true);
+                    sendMessage.setText(String.format("Следующий фасилитатор: %s", chatMember.getMember().getNickNamne()));
+                    log.info(String.format("For chat %s selected new facilitator %s", chatId, chatMember.getMember().getNickNamne()));
+                }, () -> sendMessage.setText(String.format("Участник с id: %s не найден", newFacilitatorId)));
+
         return sendMessage;
+    }
+
+    public SendMessage sendUserListMessage(Long chatId) {
+        StringBuilder responseText = new StringBuilder();
+        responseText.append("Зарегистрированные пользователи:\n");
+
+        chatMemberRepository.findAllByChat_Id(chatId).ifPresentOrElse(
+                chatMembers -> chatMembers.forEach(chatMember ->
+                                responseText.append(chatMember.getMember().getNickNamne()).append("\n")),
+                () -> responseText.append("Список пуст")
+        );
+
+        return new SendMessage(chatId.toString(), responseText.toString());
+    }
+
+    public SendMessage sendHelpMessage(Long chatId) {
+        return new SendMessage(chatId.toString(),
+                "Список возможных команд:\n" +
+                "/register - регистрация пользователя\n" +
+                "/getUserList - список участников\n" +
+                "/setFacilitator - выбор фасилитатора\n" +
+                "/enableDailyReminder - включить напоминание о дейли\n" +
+                "/disableDailyReminder- выключить напоминание о дейли"
+        );
     }
 
     public EditMessageReplyMarkup removeMarkupFromPreviousMessage(Long chatId, Integer messageId) {
@@ -195,7 +197,7 @@ public class ScrumHelpBotService {
         return editMessageReplyMarkup;
     }
 
-    public List<Chat> getAllChats() {
-        return chatRepository.findAll();
+    public Optional<List<Chat>> findChats() {
+        return chatMemberRepository.findDistinctChats();
     }
 }

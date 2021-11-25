@@ -1,134 +1,47 @@
 package com.example.scrumhelp.scrum.model;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import javax.persistence.*;
 
 @Entity(name = "ChatMember")
-@Table(name = "chatmember")
+@Table(name = "chat_member")
+@NoArgsConstructor
+@Setter
+@Getter
 public class ChatMember {
-    @Id
-    @Column(
-            name = "id",
-            updatable = false
-    )
-    private Long id;
 
-    @Column(name = "username")
-    private String userName;
+    @EmbeddedId
+    private ChatMemberId chatMemberId;
 
-    @Column(name = "isfacilitator")
+    @Column(name = "is_facilitator")
     private Boolean isFacilitator;
 
-    @Column(name = "first_name")
-    private String firstName;
+    @ManyToOne
+    @MapsId("memberId")
+    @JoinColumn(
+            name = "member_id",
+            foreignKey = @ForeignKey(
+                    name = "fk_chatmember_member_id"
+            )
+    )
+    private Member member;
 
-    @Column(name = "last_name")
-    private String lastName;
-
-    @ManyToOne()
+    @ManyToOne
+    @MapsId("chatId")
     @JoinColumn(
             name = "chat_id",
             foreignKey = @ForeignKey(
-                    name = "fk_chat_member_chat"
+                    name = "fk_chatmember_chat_id"
             )
     )
     private Chat chat;
 
-    public ChatMember(Long id,
-                      String userName,
-                      Boolean isFacilitator,
-                      String firstName,
-                      String lastName)
-    {
-        this.id = id;
-        this.userName = userName;
+    public ChatMember(Member member, Chat chat, Boolean isFacilitator) {
         this.isFacilitator = isFacilitator;
-        this.firstName = firstName;
-        this.lastName = lastName;
-    }
-
-    public ChatMember() {
-    }
-
-    public Chat getChat() {
-        return chat;
-    }
-
-    public void setChat(Chat chat) {
+        this.member = member;
         this.chat = chat;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
-    public Boolean getFacilitator() {
-        return isFacilitator;
-    }
-
-    public void setFacilitator(Boolean facilitator) {
-        isFacilitator = facilitator;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public String getChatName() {
-        if (getUserName() == null) {
-            if (!getFullName().equals("")) {
-                return getFullName();
-            } else {
-                return getId().toString();
-            }
-        }
-        return getUserName();
-    }
-
-    private String getFullName() {
-        String result = "";
-
-        if (getFirstName() != null) {
-            result += getFirstName();
-        }
-        if (getLastName() != null) {
-            result += getLastName();
-        }
-
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "ChatMember{" +
-                "id=" + id +
-                ", userName='" + userName + '\'' +
-                ", isFacilitator=" + isFacilitator +
-                ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
-                '}';
     }
 }

@@ -13,8 +13,6 @@ services:
       - SPRING_DATASOURCE_USERNAME=
       - SPRING_DATASOURCE_PASSWORD=
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-    env_file:
-      - dev.env
   db:
     image: 'postgres:13.1-alpine'
     container_name: db
@@ -22,5 +20,3 @@ services:
       - POSTGRES_USER=
       - POSTGRES_PASSWORD=
       - POSTGRES_DB=scrumhelp
-    env_file:
-      - dev.env

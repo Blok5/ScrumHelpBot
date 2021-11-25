@@ -29,15 +29,19 @@ public class ScheduledSelectFacilitatorComponent {
 
     @Scheduled(cron = "0 45 10 ? * MON-FRI", zone = "Europe/Moscow")
     private void schedule() {
-        scrumHelpBotService.getAllChats().forEach(chat ->
-                taskExecutor.execute(() -> {
-                    try {
-                        log.info("Running SelectFacilitatorTask for chat " + chat.getId());
-                        scrumHelpBot.execute(scrumHelpBotService.sendSelectFacilitatorMessage(chat.getId()));
-                    } catch (TelegramApiException e) {
-                        log.error(e.getMessage());
-                    }
-                    log.info("Finished SelectFacilitatorTask for chat " + chat.getId());
-                }));
+        scrumHelpBotService.findChats().ifPresent(chats ->
+                chats.forEach(chat ->
+                        taskExecutor.execute(() -> {
+                            try {
+                                log.info("Running SelectFacilitatorTask for chat " + chat.getId());
+                                scrumHelpBot.execute(scrumHelpBotService.sendSelectFacilitatorMessage(chat.getId()));
+                                log.info("Finished SelectFacilitatorTask for chat " + chat.getId());
+                            } catch (TelegramApiException e) {
+                                log.error(e.getMessage());
+                            }
+                        })
+                )
+        );
+
     }
 }

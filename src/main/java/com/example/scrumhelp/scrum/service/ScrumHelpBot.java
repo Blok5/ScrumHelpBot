@@ -59,6 +59,8 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                     execute(sendDailyReminderEnableMessage(chatId));
                 } else if ("/disableDailyReminder".equals(messageText)) {
                     execute(sendDailyReminderDisableMessage(chatId));
+                } else if ("/getUserList".equals(messageText)) {
+                    execute(scrumHelpBotService.sendUserListMessage(chatId));
                 } else if ("/help".equals(messageText)) {
                     execute(scrumHelpBotService.sendHelpMessage(chatId));
                 }
@@ -102,6 +104,7 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
     public String getBotUsername() {
         return telegramBotConfig.getBotUserName();
     }
+
 }
 
 
