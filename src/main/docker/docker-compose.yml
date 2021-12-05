@@ -1,5 +1,3 @@
-x-aws-vps: "vpc-0517a2f5be449ec37"
-x-aws-protocol: http
 services:
   db:
     ports:
