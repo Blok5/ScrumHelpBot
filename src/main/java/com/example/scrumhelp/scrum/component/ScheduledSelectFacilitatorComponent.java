@@ -1,5 +1,6 @@
 package com.example.scrumhelp.scrum.component;
 
+import com.example.scrumhelp.scrum.service.ChatMemberService;
 import com.example.scrumhelp.scrum.service.ScrumHelpBot;
 import com.example.scrumhelp.scrum.service.ScrumHelpBotService;
 import lombok.extern.slf4j.Slf4j;
@@ -15,21 +16,25 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 @Slf4j
 public class ScheduledSelectFacilitatorComponent {
     private final ScrumHelpBot scrumHelpBot;
+    private final ChatMemberService chatMemberService;
     private final ScrumHelpBotService scrumHelpBotService;
     private final TaskExecutor taskExecutor;
 
     @Autowired
     public ScheduledSelectFacilitatorComponent(ScrumHelpBot scrumHelpBot,
+                                               ChatMemberService chatMemberService,
                                                ScrumHelpBotService scrumHelpBotService,
-                                               TaskExecutor taskExecutor) {
+                                               TaskExecutor taskExecutor)
+    {
         this.scrumHelpBot = scrumHelpBot;
+        this.chatMemberService = chatMemberService;
         this.scrumHelpBotService = scrumHelpBotService;
         this.taskExecutor = taskExecutor;
     }
 
     @Scheduled(cron = "0 45 10 ? * MON-FRI", zone = "Europe/Moscow")
     private void schedule() {
-        scrumHelpBotService.findChats().ifPresent(chats ->
+        chatMemberService.findChats().ifPresent(chats ->
                 chats.forEach(chat ->
                         taskExecutor.execute(() -> {
                             try {

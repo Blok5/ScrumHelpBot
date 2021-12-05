@@ -104,8 +104,4 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
     public String getBotUsername() {
         return telegramBotConfig.getBotUserName();
     }
-
 }
-
-
-

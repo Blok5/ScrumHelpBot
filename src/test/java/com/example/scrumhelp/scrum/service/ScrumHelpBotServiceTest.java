@@ -1,39 +1,171 @@
 package com.example.scrumhelp.scrum.service;
 
-import com.example.scrumhelp.scrum.repository.MemberRepository;
-import com.example.scrumhelp.scrum.repository.ChatRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.scrumhelp.scrum.enums.DailyReminderState;
+import com.example.scrumhelp.scrum.model.Chat;
+import com.example.scrumhelp.scrum.model.ChatMember;
+import com.example.scrumhelp.scrum.model.Member;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
+import org.telegram.telegrambots.meta.api.objects.User;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.List;
+import java.util.Optional;
 
-//@ExtendWith(MockitoExtension.class)
+import static com.example.scrumhelp.scrum.enums.DailyReminderState.*;
+import static com.example.scrumhelp.scrum.enums.Emoji.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 @SpringBootTest
+@ActiveProfiles("dev")
 public class ScrumHelpBotServiceTest {
 
-    @MockBean
+    @Mock
+    private ChatMemberService chatMemberService;
+    @Mock
+    private ChatService chatService;
+    @Mock
+    private MemberService memberService;
+    @InjectMocks
     private ScrumHelpBotService scrumHelpBotService;
-    @Autowired
-    private ChatRepository chatRepository;
-    @Autowired
-    private MemberRepository memberRepository;
 
-//    @Test
-//    void registrFirstUserInEmptyGroup() {
-//        User user = new User(3L,
-//                "firsName",
-//                false,
-//                "lastName",
-//                "userName",
-//                "ru",
-//                true,
-//                true,
-//                true);
+    @Test
+    void registerNewUserForNewChatShouldBeSuccess() {
+        Member member = new Member();
+        member.setId(1L);
+        member.setUserName("Test User");
 
-//        scrumHelpBotService.registrUser(2L, user);
-//        assertThat(chatRepository.getById(2L)).isNotNull();
-//        assertThat(chatMemberRepository.getById(3L)).isNotNull();
-//        Optional<ChatMember> chatMember= chatMemberRepository.findById(3L);
-//        assertThat(chatMember.isPresent()).isTrue();
+        when(memberService.findOrCreate(any())).thenReturn(member);
+        when(chatMemberService.findChatMemberForChat(any(), any())).thenReturn(Optional.empty());
+
+        SendMessage sendMessage = scrumHelpBotService.sendRegisterUserMessage(1L, new User());
+
+        assertEquals("Пользователь Test User успешно зарегистрирован!" + PartyingFace, sendMessage.getText());
+    }
+
+    @Test
+    void registerExistingUserShouldBeError() {
+        Member member = new Member();
+        member.setUserName("Test Member");
+        Optional<ChatMember> memberOptional =
+                Optional.of(new ChatMember(member, new Chat(1L), false));
+
+        when(memberService.findOrCreate(any())).thenReturn(member);
+        when(chatMemberService.findChatMemberForChat(any(), any())).thenReturn(memberOptional);
+
+        SendMessage sendMessage = scrumHelpBotService.sendRegisterUserMessage(1L, new User());
+
+        assertEquals("Пользователь Test Member уже зарегистрирован!" + OkHad, sendMessage.getText());
+    }
+
+    @Test
+    void remindDailyMessageWithEmptyFacilitatorShouldBeNotAssign() {
+        when(chatMemberService.findFacilitatorForChat(1L, true)).thenReturn(Optional.empty());
+        SendMessage sendMessage = scrumHelpBotService.sendRemindDailyMessage(1L);
+        assertTrue(sendMessage.getText().contains("Не назначен!"));
+    }
+
+    @Test
+    void remindDailyMessageWithExistingFacilitatorShouldContainsName() {
+        Member member = new Member();
+        member.setUserName("Test Member");
+        Optional<ChatMember> chatMemberOptional = Optional.of(
+                new ChatMember(member, new Chat(1L), true)
+        );
+
+        when(chatMemberService.findFacilitatorForChat(1L, true)).thenReturn(chatMemberOptional);
+        SendMessage sendMessage = scrumHelpBotService.sendRemindDailyMessage(1L);
+        assertTrue(sendMessage.getText().contains("Test Member"));
+    }
+
+    @Test
+    void whenMembersExistsUserListMessageShouldNotBeEmpty() {
+        Member member1 = new Member();
+        member1.setUserName("UserName1");
+        Member member2 = new Member();
+        member2.setUserName("UserName2");
+        Member member3 = new Member();
+        member3.setUserName("UserName3");
+
+        Chat chat = new Chat(1L);
+
+        List<ChatMember> chatMemberList = List.of(
+                new ChatMember(member1, chat, false),
+                new ChatMember(member2, chat, false),
+                new ChatMember(member3, chat, false)
+        );
+
+        when(chatMemberService.findChatMembers(any())).thenReturn(Optional.of(chatMemberList));
+
+        SendMessage sendMessage = scrumHelpBotService.sendUserListMessage(1L);
+        assertEquals("Зарегистрированные пользователи:\nUserName1\nUserName2\nUserName3\n", sendMessage.getText());
+    }
+
+    @Test
+    void whenMembersDoesntExistsUserListMessageShouldNotBeEmpty() {
+        when(chatMemberService.findChatMembers(any())).thenReturn(Optional.empty());
+
+        SendMessage sendMessage = scrumHelpBotService.sendUserListMessage(1L);
+        assertEquals("Зарегистрированные пользователи:\nСписок пуст", sendMessage.getText());
+    }
+
+    @Test
+    void sendHelpMessageShouldBeSuccessful() {
+        SendMessage sendMessage = scrumHelpBotService.sendHelpMessage(1L);
+        assertEquals("Список возможных команд:\n" +
+                "/register - регистрация пользователя\n" +
+                "/getUserList - список участников\n" +
+                "/setFacilitator - выбор фасилитатора\n" +
+                "/enableDailyReminder - включить напоминание о дейли\n" +
+                "/disableDailyReminder- выключить напоминание о дейли",
+                sendMessage.getText()
+        );
+    }
+
+    @Test
+    void removeMarkupFromPreviousMessageShouldBeSuccessful() {
+        EditMessageReplyMarkup editMessageReplyMarkup = scrumHelpBotService.removeMarkupFromPreviousMessage(1L, 1);
+        assertAll(
+                () -> assertEquals("1", editMessageReplyMarkup.getChatId()),
+                () -> assertEquals(1, editMessageReplyMarkup.getMessageId()),
+                () -> assertNull(editMessageReplyMarkup.getReplyMarkup())
+        );
+    }
+
+    @Test
+    void sendDailyReminderMessageTurnedOffCase() {
+        SendMessage sendMessage = scrumHelpBotService.sendDailyReminderMessage(1L, TurnedOff);
+        assertEquals("Напоминание о дейли выключено!" + CrossMark, sendMessage.getText());
+    }
+
+    @Test
+    void sendDailyReminderMessageNotSetCase() {
+        SendMessage sendMessage = scrumHelpBotService.sendDailyReminderMessage(1L, NotSet);
+        assertEquals("Напоминание о дейли еще не установлено!" + RedExclamation +
+        "\nДля включения напоминания /enableDailyReminder",
+                sendMessage.getText()
+        );
+    }
+
+    @Test
+    void sendDailyReminderMessageTurnedOnCase() {
+        SendMessage sendMessage = scrumHelpBotService.sendDailyReminderMessage(1L, TurnedOn);
+        assertEquals("Напоминание о дейли включено!" + CheckMarkButton + "\n" +
+                "Для выключения напоминания:\n/disableDailyReminder",
+                sendMessage.getText());
+    }
+
+    @Test
+    void sendDailyReminderMessageAlreadySetCase() {
+        SendMessage sendMessage = scrumHelpBotService.sendDailyReminderMessage(1L, AlreadySet);
+        assertEquals("Напоминание о дейли уже установлено!" + RedExclamation,
+                sendMessage.getText()
+        );
+    }
 }

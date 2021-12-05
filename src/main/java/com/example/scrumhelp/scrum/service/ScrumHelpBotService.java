@@ -2,13 +2,8 @@ package com.example.scrumhelp.scrum.service;
 
 import com.example.scrumhelp.scrum.enums.DailyReminderState;
 import com.example.scrumhelp.scrum.enums.Emoji;
-import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
-import com.example.scrumhelp.scrum.repository.ChatMemberRepository;
-import com.example.scrumhelp.scrum.repository.MemberRepository;
-import com.example.scrumhelp.scrum.repository.ChatRepository;
-import eye2web.modelmapper.ModelMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,53 +13,46 @@ import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static com.example.scrumhelp.scrum.enums.Emoji.*;
+import static java.lang.String.format;
 
 @Service
 @Slf4j
 public class ScrumHelpBotService {
-    private final MemberRepository memberRepository;
-    private final ChatRepository chatRepository;
-    private final ChatMemberRepository chatMemberRepository;
-    private final ModelMapper modelMapper;
+    private final ChatMemberService chatMemberService;
+    private final MemberService memberService;
+    private final ChatService chatService;
 
     @Autowired
-    public ScrumHelpBotService(MemberRepository memberRepository,
-                               ChatRepository chatRepository,
-                               ChatMemberRepository chatMemberRepository,
-                               ModelMapper modelMapper)
+    public ScrumHelpBotService(ChatService chatService,
+                               ChatMemberService chatMemberService,
+                               MemberService memberService)
     {
-        this.memberRepository = memberRepository;
-        this.chatRepository = chatRepository;
-        this.chatMemberRepository = chatMemberRepository;
-        this.modelMapper = modelMapper;
+        this.chatService = chatService;
+        this.chatMemberService = chatMemberService;
+        this.memberService = memberService;
     }
 
     public SendMessage sendRegisterUserMessage(Long chatId, User fromUser) {
-        StringBuilder responseText = new StringBuilder();
-        Member member = memberRepository.findById(fromUser.getId()).orElse(modelMapper.map(fromUser, Member.class));
+        SendMessage sendMessage = new SendMessage();
+        Member member = memberService.findOrCreate(fromUser);
 
-        chatMemberRepository.findChatMemberByChat_IdAndAndMember_Id(chatId, member.getId()).ifPresentOrElse(
+        chatMemberService.findChatMemberForChat(chatId, member.getId()).ifPresentOrElse(
                 chatMember -> {
-                    responseText.append("Пользователь ").append(member.getNickNamne()).append(" уже зарегистрирован!").append(OkHad);
-                    log.warn(member.getNickNamne() + " already exist!");
+                    sendMessage.setText(format("Пользователь %s уже зарегистрирован!%s" , member.getNickName(), OkHad));
+                    log.warn(member.getNickName() + " already exist!");
                 }, () -> {
-                    Chat chat = chatRepository.findById(chatId).orElse(new Chat(chatId));
-                    memberRepository.save(member);
-                    chat.addMember(member);
-                    chatRepository.save(chat);
-
-                    responseText.append("Пользователь ").append(member.getNickNamne())
-                            .append(" успешно зарегистрирован!").append(Emoji.PartyingFace);
-                    log.info(member.getNickNamne() + " user registered for chat: " + chatId + " successfully!");
+                    chatService.addMember(member, chatId);
+                    sendMessage.setText(format("Пользователь %s успешно зарегистрирован!%s", member.getNickName(), PartyingFace));
+                    log.info(member.getNickName() + " user registered for chat: " + chatId + " successfully!");
                 });
 
-        return new SendMessage(chatId.toString(), responseText.toString());
+        sendMessage.setChatId(chatId.toString());
+        return sendMessage;
     }
 
     public SendMessage sendDailyReminderMessage(Long chatId, DailyReminderState dailyReminderState) {
@@ -95,12 +83,12 @@ public class ScrumHelpBotService {
     }
 
     public SendMessage sendRemindDailyMessage(Long chatId) {
-        Optional<ChatMember> chatMember = chatMemberRepository.findChatMemberByChat_IdAndIsFacilitator(chatId, true);
-        String name = chatMember.isPresent() ? chatMember.get().getMember().getNickNamne() : "Не назначен!";
+        Optional<ChatMember> chatMember = chatMemberService.findFacilitatorForChat(chatId, true);
+        String name = chatMember.isPresent() ? chatMember.get().getMember().getNickName() : "Не назначен!";
 
-        String remindText = Emoji.YawningFace.getText() +
+        String remindText = YawningFace.getText() +
                 "В 10:30 начнется Daily!\n\n" +
-                Emoji.Memo.getText() + "Вспомни:\n" +
+                Memo.getText() + "Вспомни:\n" +
                 "Что сделано вчера?\n" +
                 "Что будет сделано сегодня?\n" +
                 "С какими проблемами столкнулся?\n\n" +
@@ -111,15 +99,14 @@ public class ScrumHelpBotService {
     }
 
     public SendMessage sendSelectFacilitatorMessage(Long chatId) {
-        Optional<List<ChatMember>> chatMembers = chatMemberRepository.findAllByChat_Id(chatId);
-
+        Optional<List<ChatMember>> chatMembers = chatMemberService.findChatMembers(chatId);
         List<List<InlineKeyboardButton>> keyboardButtonsRowList = new ArrayList<>();
         List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
 
         if (chatMembers.isPresent()) {
             for (ChatMember chatMember : chatMembers.get()) {
                 InlineKeyboardButton button = new InlineKeyboardButton();
-                button.setText(chatMember.getMember().getNickNamne());
+                button.setText(chatMember.getMember().getNickName());
                 button.setCallbackData("/newFacilitator " + chatMember.getMember().getId());
 
                 keyboardButtonsRow.add(button);
@@ -144,25 +131,17 @@ public class ScrumHelpBotService {
         return new SendMessage(chatId.toString(), "Список зарегистрированных пользователей пуст");
     }
 
-    @Transactional
     public SendMessage sendNewFacilitatorSelectedMessage(Long chatId, String callbackData) {
         SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId.toString());
         Long newFacilitatorId = Long.parseLong(callbackData.split(" ")[1]);
 
-        chatMemberRepository.findChatMemberByChat_IdAndIsFacilitator(chatId, true)
-                .ifPresent(chatMember -> {
-                    chatMember.setIsFacilitator(false);
-                    chatMemberRepository.save(chatMember);
-                });
-
-        chatMemberRepository.findChatMemberByChat_IdAndAndMember_Id(chatId, newFacilitatorId).ifPresentOrElse(
+        chatMemberService.changeFacilitatorForChat(chatId, newFacilitatorId).ifPresentOrElse(
                 chatMember -> {
-                    chatMember.setIsFacilitator(true);
-                    sendMessage.setText(String.format("Следующий фасилитатор: %s", chatMember.getMember().getNickNamne()));
-                    log.info(String.format("For chat %s selected new facilitator %s", chatId, chatMember.getMember().getNickNamne()));
-                }, () -> sendMessage.setText(String.format("Участник с id: %s не найден", newFacilitatorId)));
+                    sendMessage.setText(format("Следующий фасилитатор: %s", chatMember.getMember().getNickName()));
+                    log.info(format("For chat %s selected new facilitator %s", chatId, chatMember.getMember().getNickName()));
+                }, () -> sendMessage.setText(format("Участник с id: %s не найден", newFacilitatorId)));
 
+        sendMessage.setChatId(chatId.toString());
         return sendMessage;
     }
 
@@ -170,9 +149,9 @@ public class ScrumHelpBotService {
         StringBuilder responseText = new StringBuilder();
         responseText.append("Зарегистрированные пользователи:\n");
 
-        chatMemberRepository.findAllByChat_Id(chatId).ifPresentOrElse(
+        chatMemberService.findChatMembers(chatId).ifPresentOrElse(
                 chatMembers -> chatMembers.forEach(chatMember ->
-                                responseText.append(chatMember.getMember().getNickNamne()).append("\n")),
+                        responseText.append(chatMember.getMember().getNickName()).append("\n")),
                 () -> responseText.append("Список пуст")
         );
 
@@ -182,11 +161,11 @@ public class ScrumHelpBotService {
     public SendMessage sendHelpMessage(Long chatId) {
         return new SendMessage(chatId.toString(),
                 "Список возможных команд:\n" +
-                "/register - регистрация пользователя\n" +
-                "/getUserList - список участников\n" +
-                "/setFacilitator - выбор фасилитатора\n" +
-                "/enableDailyReminder - включить напоминание о дейли\n" +
-                "/disableDailyReminder- выключить напоминание о дейли"
+                        "/register - регистрация пользователя\n" +
+                        "/getUserList - список участников\n" +
+                        "/setFacilitator - выбор фасилитатора\n" +
+                        "/enableDailyReminder - включить напоминание о дейли\n" +
+                        "/disableDailyReminder- выключить напоминание о дейли"
         );
     }
 
@@ -195,9 +174,5 @@ public class ScrumHelpBotService {
         editMessageReplyMarkup.setChatId(chatId.toString());
         editMessageReplyMarkup.setMessageId(messageId);
         return editMessageReplyMarkup;
-    }
-
-    public Optional<List<Chat>> findChats() {
-        return chatMemberRepository.findDistinctChats();
     }
 }

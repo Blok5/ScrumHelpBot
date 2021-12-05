@@ -38,7 +38,7 @@ public class Member {
     )
     private List<ChatMember> chatMembers = new ArrayList<>();
 
-    public String getNickNamne() {
+    public String getNickName() {
 
         if (getFullName().equals("")) {
             if (getUserName() != null) {

@@ -12,9 +12,7 @@ import java.util.Optional;
 public interface ChatMemberRepository extends JpaRepository<ChatMember, ChatMemberId> {
     Optional<ChatMember> findChatMemberByChat_IdAndIsFacilitator(Long chatId, Boolean isFacilitator);
     Optional<List<ChatMember>> findAllByChat_Id(Long chatId);
-    //TODO: refactor AndAnd
-    Optional<ChatMember> findChatMemberByChat_IdAndAndMember_Id(Long chatId, Long memberId);
-
+    Optional<ChatMember> findChatMemberByChat_IdAndMember_Id(Long chatId, Long memberId);
     @Query("SELECT DISTINCT chat FROM ChatMember")
     Optional<List<Chat>> findDistinctChats();
 }
