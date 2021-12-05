@@ -1,6 +1,5 @@
 package com.example.scrumhelp.scrum.service;
 
-import com.example.scrumhelp.scrum.enums.DailyReminderState;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
@@ -25,11 +24,10 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @ActiveProfiles("dev")
 public class ScrumHelpBotServiceTest {
-
-    @Mock
-    private ChatMemberService chatMemberService;
     @Mock
     private ChatService chatService;
+    @Mock
+    private ChatMemberService chatMemberService;
     @Mock
     private MemberService memberService;
     @InjectMocks
@@ -43,6 +41,7 @@ public class ScrumHelpBotServiceTest {
 
         when(memberService.findOrCreate(any())).thenReturn(member);
         when(chatMemberService.findChatMemberForChat(any(), any())).thenReturn(Optional.empty());
+        when(chatService.findOrCreate(any())).thenReturn(new Chat(1L));
 
         SendMessage sendMessage = scrumHelpBotService.sendRegisterUserMessage(1L, new User());
 
@@ -101,7 +100,7 @@ public class ScrumHelpBotServiceTest {
                 new ChatMember(member3, chat, false)
         );
 
-        when(chatMemberService.findChatMembers(any())).thenReturn(Optional.of(chatMemberList));
+        when(chatMemberService.findChatMembers(any())).thenReturn(chatMemberList);
 
         SendMessage sendMessage = scrumHelpBotService.sendUserListMessage(1L);
         assertEquals("Зарегистрированные пользователи:\nUserName1\nUserName2\nUserName3\n", sendMessage.getText());
@@ -109,7 +108,7 @@ public class ScrumHelpBotServiceTest {
 
     @Test
     void whenMembersDoesntExistsUserListMessageShouldNotBeEmpty() {
-        when(chatMemberService.findChatMembers(any())).thenReturn(Optional.empty());
+        when(chatMemberService.findChatMembers(any())).thenReturn(List.of());
 
         SendMessage sendMessage = scrumHelpBotService.sendUserListMessage(1L);
         assertEquals("Зарегистрированные пользователи:\nСписок пуст", sendMessage.getText());

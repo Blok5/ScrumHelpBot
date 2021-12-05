@@ -31,10 +31,11 @@ public class ChatMemberService {
         return chatMemberRepository.findDistinctChats();
     }
 
-    public Optional<List<ChatMember>> findChatMembers(Long chatId) {
+    public List<ChatMember> findChatMembers(Long chatId) {
         return chatMemberRepository.findAllByChat_Id(chatId);
     }
 
+    //TODO: unit test
     @Transactional
     public Optional<ChatMember> changeFacilitatorForChat(Long chatId, Long newFacilitatorId) {
         findFacilitatorForChat(chatId, true)

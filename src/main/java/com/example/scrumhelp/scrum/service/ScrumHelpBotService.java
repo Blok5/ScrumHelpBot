@@ -30,8 +30,7 @@ public class ScrumHelpBotService {
     @Autowired
     public ScrumHelpBotService(ChatService chatService,
                                ChatMemberService chatMemberService,
-                               MemberService memberService)
-    {
+                               MemberService memberService) {
         this.chatService = chatService;
         this.chatMemberService = chatMemberService;
         this.memberService = memberService;
@@ -43,7 +42,7 @@ public class ScrumHelpBotService {
 
         chatMemberService.findChatMemberForChat(chatId, member.getId()).ifPresentOrElse(
                 chatMember -> {
-                    sendMessage.setText(format("Пользователь %s уже зарегистрирован!%s" , member.getNickName(), OkHad));
+                    sendMessage.setText(format("Пользователь %s уже зарегистрирован!%s", member.getNickName(), OkHad));
                     log.warn(member.getNickName() + " already exist!");
                 }, () -> {
                     chatService.addMember(member, chatId);
@@ -98,13 +97,14 @@ public class ScrumHelpBotService {
         return new SendMessage(chatId.toString(), remindText);
     }
 
+    //TODO: unit test
     public SendMessage sendSelectFacilitatorMessage(Long chatId) {
-        Optional<List<ChatMember>> chatMembers = chatMemberService.findChatMembers(chatId);
+        List<ChatMember> chatMembers = chatMemberService.findChatMembers(chatId);
         List<List<InlineKeyboardButton>> keyboardButtonsRowList = new ArrayList<>();
         List<InlineKeyboardButton> keyboardButtonsRow = new ArrayList<>();
 
-        if (chatMembers.isPresent()) {
-            for (ChatMember chatMember : chatMembers.get()) {
+        if (!chatMembers.isEmpty()) {
+            for (ChatMember chatMember : chatMembers) {
                 InlineKeyboardButton button = new InlineKeyboardButton();
                 button.setText(chatMember.getMember().getNickName());
                 button.setCallbackData("/newFacilitator " + chatMember.getMember().getId());
@@ -131,6 +131,7 @@ public class ScrumHelpBotService {
         return new SendMessage(chatId.toString(), "Список зарегистрированных пользователей пуст");
     }
 
+    //TODO: unit test
     public SendMessage sendNewFacilitatorSelectedMessage(Long chatId, String callbackData) {
         SendMessage sendMessage = new SendMessage();
         Long newFacilitatorId = Long.parseLong(callbackData.split(" ")[1]);
@@ -149,11 +150,13 @@ public class ScrumHelpBotService {
         StringBuilder responseText = new StringBuilder();
         responseText.append("Зарегистрированные пользователи:\n");
 
-        chatMemberService.findChatMembers(chatId).ifPresentOrElse(
-                chatMembers -> chatMembers.forEach(chatMember ->
-                        responseText.append(chatMember.getMember().getNickName()).append("\n")),
-                () -> responseText.append("Список пуст")
-        );
+        List<ChatMember> chatMembers = chatMemberService.findChatMembers(chatId);
+
+        if (!chatMembers.isEmpty()) {
+            chatMembers.forEach(chatMember -> responseText.append(chatMember.getMember().getNickName()).append("\n"));
+        } else {
+            responseText.append("Список пуст");
+        }
 
         return new SendMessage(chatId.toString(), responseText.toString());
     }

@@ -1,4 +1,15 @@
+x-aws-vps: "vpc-0517a2f5be449ec37"
+x-aws-protocol: http
 services:
+  db:
+    ports:
+      - "5432:5432"
+    image: 'postgres:13.1-alpine'
+    container_name: db
+    environment:
+      - POSTGRES_USER=
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=scrumhelp
   scrumhelpapp:
     ports:
       - "8080:8080"
@@ -13,10 +24,3 @@ services:
       - SPRING_DATASOURCE_USERNAME=
       - SPRING_DATASOURCE_PASSWORD=
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-  db:
-    image: 'postgres:13.1-alpine'
-    container_name: db
-    environment:
-      - POSTGRES_USER=
-      - POSTGRES_PASSWORD=
-      - POSTGRES_DB=scrumhelp

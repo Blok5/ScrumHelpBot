@@ -30,8 +30,7 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
     public ScrumHelpBot(ScrumHelpBotService scrumHelpBotService,
                         TelegramBotConfig telegramBotConfig,
                         ThreadPoolTaskScheduler threadPoolTaskScheduler,
-                        ScheduledFutureStoreComponent scheduledFutureStoreComponent)
-    {
+                        ScheduledFutureStoreComponent scheduledFutureStoreComponent) {
         this.scrumHelpBotService = scrumHelpBotService;
         this.telegramBotConfig = telegramBotConfig;
         this.threadPoolTaskScheduler = threadPoolTaskScheduler;
@@ -48,6 +47,8 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                     execute(scrumHelpBotService.sendNewFacilitatorSelectedMessage(chatId, update.getCallbackQuery().getData()));
                 }
             } else {
+                if (!update.hasMessage()) return;
+
                 String messageText = update.getMessage().getText();
                 Long chatId = update.getMessage().getChatId();
 

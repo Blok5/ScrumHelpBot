@@ -2,12 +2,20 @@ telegram:
   bot:
     botUserName:
     botToken:
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    password: ${DB_PASSWORD}
+    password:
     url:
-    username: ${DB_USERNAME}
+    username:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     show-sql: false
