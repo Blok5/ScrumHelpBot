@@ -10,7 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
 import java.util.List;
 import java.util.Optional;
@@ -118,11 +120,12 @@ public class ScrumHelpBotServiceTest {
     void sendHelpMessageShouldBeSuccessful() {
         SendMessage sendMessage = scrumHelpBotService.sendHelpMessage(1L);
         assertEquals("Список возможных команд:\n" +
-                "/register - регистрация пользователя\n" +
-                "/getUserList - список участников\n" +
-                "/setFacilitator - выбор фасилитатора\n" +
-                "/enableDailyReminder - включить напоминание о дейли\n" +
-                "/disableDailyReminder- выключить напоминание о дейли",
+                        "/register - регистрация пользователя\n" +
+                        "/getUserList - список участников\n" +
+                        "/setFacilitator - выбор фасилитатора\n" +
+                        "/luckyFacilitator - случайный выбор фасилитатора\n" +
+                        "/enableDailyReminder - включить напоминание о дейли\n" +
+                        "/disableDailyReminder- выключить напоминание о дейли\n",
                 sendMessage.getText()
         );
     }
@@ -166,5 +169,54 @@ public class ScrumHelpBotServiceTest {
         assertEquals("Напоминание о дейли уже установлено!" + RedExclamation,
                 sendMessage.getText()
         );
+    }
+
+    @Test
+    void selectFacilitatorMessageShouldHaveChatMembers() {
+        Member member1 = new Member();
+        member1.setId(1L);
+        member1.setUserName("member1");
+        Member member2 = new Member();
+        member2.setId(2L);
+        member2.setUserName("member2");
+        Member member3 = new Member();
+        member3.setId(3L);
+        member3.setUserName("member3");
+
+        Chat chat = new Chat(1L);
+
+        when(chatMemberService.findChatMembers(any())).thenReturn(List.of(
+           new ChatMember(member1, chat, true),
+           new ChatMember(member2, chat, false),
+           new ChatMember(member3, chat, false)
+        ));
+
+        SendMessage sendMessage = scrumHelpBotService.sendSelectFacilitatorMessage(1L);
+
+        InlineKeyboardMarkup inlineKeyboardMarkup = (InlineKeyboardMarkup)sendMessage.getReplyMarkup();
+        assertAll(
+                () -> assertEquals("Выбери следующего фасилитатора:" + PoliceOfficer, sendMessage.getText()),
+                () -> assertEquals("/newFacilitator 1", inlineKeyboardMarkup.getKeyboard().get(0).get(0).getCallbackData()),
+                () -> assertEquals("/newFacilitator 2", inlineKeyboardMarkup.getKeyboard().get(0).get(1).getCallbackData()),
+                () -> assertEquals("/newFacilitator 3", inlineKeyboardMarkup.getKeyboard().get(1).get(0).getCallbackData())
+        );
+    }
+
+    @Test
+    void selectFacilitatorMessageShouldBeEmpty() {
+        when(chatMemberService.findChatMembers(any())).thenReturn(List.of());
+        SendMessage sendMessage = scrumHelpBotService.sendSelectFacilitatorMessage(1L);
+        assertEquals("Список зарегистрированных пользователей пуст", sendMessage.getText());
+    }
+
+    //TODO: sendSetFacilitatorSelectedMessageWithUpdate
+    @Test
+    void  sendSetFacilitatorSelectedMessageWithUpdate() {
+    }
+
+    //TODO: sendSetFacilitatorSelectedMessageWithNull
+    @Test
+    void  sendSetFacilitatorSelectedMessageWithNull() {
+
     }
 }

@@ -39,7 +39,7 @@ public class ScheduledSelectFacilitatorComponent {
                         taskExecutor.execute(() -> {
                             try {
                                 log.info("Running SelectFacilitatorTask for chat " + chat.getId());
-                                scrumHelpBot.execute(scrumHelpBotService.sendSelectFacilitatorMessage(chat.getId()));
+                                scrumHelpBot.execute(scrumHelpBotService.sendSetFacilitatorSelectedMessage(chat.getId(), null));
                                 log.info("Finished SelectFacilitatorTask for chat " + chat.getId());
                             } catch (TelegramApiException e) {
                                 log.error(e.getMessage());

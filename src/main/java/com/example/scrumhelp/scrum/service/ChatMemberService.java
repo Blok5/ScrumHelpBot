@@ -35,9 +35,9 @@ public class ChatMemberService {
         return chatMemberRepository.findAllByChat_Id(chatId);
     }
 
-    //TODO: unit test
+    //TODO: unit test changeAndGetNewFacilitatorForChat
     @Transactional
-    public Optional<ChatMember> changeFacilitatorForChat(Long chatId, Long newFacilitatorId) {
+    public Optional<ChatMember> changeAndGetNewFacilitatorForChat(Long chatId, Long newFacilitatorId) {
         findFacilitatorForChat(chatId, true)
                 .ifPresent(chatMember -> {
                     chatMember.setIsFacilitator(false);

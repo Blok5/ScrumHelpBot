@@ -44,7 +44,7 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                 if (update.getCallbackQuery().getData().contains("/newFacilitator")) {
                     Long chatId = update.getCallbackQuery().getMessage().getChatId();
                     execute(scrumHelpBotService.removeMarkupFromPreviousMessage(chatId, update.getCallbackQuery().getMessage().getMessageId()));
-                    execute(scrumHelpBotService.sendNewFacilitatorSelectedMessage(chatId, update.getCallbackQuery().getData()));
+                    execute(scrumHelpBotService.sendSetFacilitatorSelectedMessage(chatId, update));
                 }
             } else {
                 if (!update.hasMessage()) return;
@@ -56,6 +56,8 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                     execute(scrumHelpBotService.sendRegisterUserMessage(chatId, update.getMessage().getFrom()));
                 } else if ("/setFacilitator".equals(messageText)) {
                     execute(scrumHelpBotService.sendSelectFacilitatorMessage(chatId));
+                } else if ("/luckyFacilitator".equals(messageText)) {
+                    execute(scrumHelpBotService.sendSetFacilitatorSelectedMessage(chatId, null));
                 } else if ("/enableDailyReminder".equals(messageText)) {
                     execute(sendDailyReminderEnableMessage(chatId));
                 } else if ("/disableDailyReminder".equals(messageText)) {

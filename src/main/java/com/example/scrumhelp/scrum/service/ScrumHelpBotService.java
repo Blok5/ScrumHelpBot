@@ -1,7 +1,7 @@
 package com.example.scrumhelp.scrum.service;
 
 import com.example.scrumhelp.scrum.enums.DailyReminderState;
-import com.example.scrumhelp.scrum.enums.Emoji;
+import com.example.scrumhelp.scrum.exception.NotFoundException;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -16,6 +17,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import static com.example.scrumhelp.scrum.enums.Emoji.*;
 import static java.lang.String.format;
@@ -97,7 +99,6 @@ public class ScrumHelpBotService {
         return new SendMessage(chatId.toString(), remindText);
     }
 
-    //TODO: unit test
     public SendMessage sendSelectFacilitatorMessage(Long chatId) {
         List<ChatMember> chatMembers = chatMemberService.findChatMembers(chatId);
         List<List<InlineKeyboardButton>> keyboardButtonsRowList = new ArrayList<>();
@@ -131,19 +132,34 @@ public class ScrumHelpBotService {
         return new SendMessage(chatId.toString(), "Список зарегистрированных пользователей пуст");
     }
 
-    //TODO: unit test
-    public SendMessage sendNewFacilitatorSelectedMessage(Long chatId, String callbackData) {
-        SendMessage sendMessage = new SendMessage();
-        Long newFacilitatorId = Long.parseLong(callbackData.split(" ")[1]);
+    //TODO: unit test sendSetFacilitatorSelectedMessage
+    /**
+     * Choose new facilitator and send message. If newFacilitatorId null then select randomly
+     * @param chatId - chat id
+     * @param update - update from telegram, if null then select randomly
+     * @return - message
+     */
+    public SendMessage sendSetFacilitatorSelectedMessage(Long chatId, Update update) {
+        Long newFacilitatorId;
+        String decisionMaker = "Lucky";
+        if (update == null) {
+            List<ChatMember> chatMembers = chatMemberService.findChatMembers(chatId);
+            ChatMember newFacilitator = chatMembers.get(new Random().nextInt(chatMembers.size()));
+            newFacilitatorId = newFacilitator.getMember().getId();
+        } else {
+            newFacilitatorId = Long.parseLong(update.getCallbackQuery().getData().split(" ")[1]);
+            decisionMaker = memberService.findOrCreate(update.getCallbackQuery().getFrom()).getNickName();
+        }
 
-        chatMemberService.changeFacilitatorForChat(chatId, newFacilitatorId).ifPresentOrElse(
-                chatMember -> {
-                    sendMessage.setText(format("Следующий фасилитатор: %s", chatMember.getMember().getNickName()));
-                    log.info(format("For chat %s selected new facilitator %s", chatId, chatMember.getMember().getNickName()));
-                }, () -> sendMessage.setText(format("Участник с id: %s не найден", newFacilitatorId)));
+        ChatMember chatMember = chatMemberService.changeAndGetNewFacilitatorForChat(chatId, newFacilitatorId)
+                .orElseThrow(() -> {
+                    log.error("Chat member with id {} not found!", newFacilitatorId);
+                    return new NotFoundException("Chat member with id " + newFacilitatorId + " not found!");
+                });
+        log.info("For chat {} selected new facilitator {}", chatId, chatMember.getMember().getNickName());
 
-        sendMessage.setChatId(chatId.toString());
-        return sendMessage;
+        return new SendMessage(chatId.toString(), decisionMaker +
+                " выбрал следующего фасилитатора: " + chatMember.getMember().getNickName());
     }
 
     public SendMessage sendUserListMessage(Long chatId) {
@@ -167,8 +183,9 @@ public class ScrumHelpBotService {
                         "/register - регистрация пользователя\n" +
                         "/getUserList - список участников\n" +
                         "/setFacilitator - выбор фасилитатора\n" +
+                        "/luckyFacilitator - случайный выбор фасилитатора\n" +
                         "/enableDailyReminder - включить напоминание о дейли\n" +
-                        "/disableDailyReminder- выключить напоминание о дейли"
+                        "/disableDailyReminder- выключить напоминание о дейли\n"
         );
     }
 
