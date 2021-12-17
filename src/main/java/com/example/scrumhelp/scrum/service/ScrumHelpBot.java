@@ -57,7 +57,7 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                 } else if ("/setFacilitator".equals(messageText)) {
                     execute(scrumHelpBotService.sendSelectFacilitatorMessage(chatId));
                 } else if ("/luckyFacilitator".equals(messageText)) {
-                    execute(scrumHelpBotService.sendSetFacilitatorSelectedMessage(chatId, null));
+                    execute(scrumHelpBotService.sendSetFacilitatorSelectedMessage(chatId));
                 } else if ("/enableDailyReminder".equals(messageText)) {
                     execute(sendDailyReminderEnableMessage(chatId));
                 } else if ("/disableDailyReminder".equals(messageText)) {

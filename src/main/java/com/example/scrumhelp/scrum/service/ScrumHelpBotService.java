@@ -133,31 +133,51 @@ public class ScrumHelpBotService {
     }
 
     //TODO: unit test sendSetFacilitatorSelectedMessage
+
     /**
      * Choose new facilitator and send message. If newFacilitatorId null then select randomly
+     *
      * @param chatId - chat id
-     * @param update - update from telegram, if null then select randomly
      * @return - message
      */
-    public SendMessage sendSetFacilitatorSelectedMessage(Long chatId, Update update) {
-        Long newFacilitatorId;
-        String decisionMaker = "Lucky";
-        if (update == null) {
-            List<ChatMember> chatMembers = chatMemberService.findChatMembers(chatId);
-            ChatMember newFacilitator = chatMembers.get(new Random().nextInt(chatMembers.size()));
-            newFacilitatorId = newFacilitator.getMember().getId();
-        } else {
-            newFacilitatorId = Long.parseLong(update.getCallbackQuery().getData().split(" ")[1]);
-            decisionMaker = memberService.findOrCreate(update.getCallbackQuery().getFrom()).getNickName();
-        }
+    public SendMessage sendSetFacilitatorSelectedMessage(Long chatId) {
+        List<ChatMember> chatMembers = chatMemberService.findChatMembersExceptFacilitator(chatId);
+        ChatMember newFacilitator = chatMembers.get(new Random().nextInt(chatMembers.size()));
+
+        Long newFacilitatorId = newFacilitator.getMember().getId();
 
         ChatMember chatMember = chatMemberService.changeAndGetNewFacilitatorForChat(chatId, newFacilitatorId)
                 .orElseThrow(() -> {
                     log.error("Chat member with id {} not found!", newFacilitatorId);
                     return new NotFoundException("Chat member with id " + newFacilitatorId + " not found!");
                 });
-        log.info("For chat {} selected new facilitator {}", chatId, chatMember.getMember().getNickName());
 
+        log.info("For chat {} selected new facilitator {}", chatId, chatMember.getMember().getNickName());
+        return new SendMessage(chatId.toString(), "Lucky" +
+                " выбрал следующего фасилитатора: " + chatMember.getMember().getNickName());
+    }
+
+
+    //TODO: unit test sendSetFacilitatorSelectedMessage
+
+    /**
+     * Choose new facilitator and send message. If newFacilitatorId null then select randomly
+     *
+     * @param chatId - chat id
+     * @param update - update from telegram, if null then select randomly
+     * @return - message
+     */
+    public SendMessage sendSetFacilitatorSelectedMessage(Long chatId, Update update) {
+        Long newFacilitatorId = Long.parseLong(update.getCallbackQuery().getData().split(" ")[1]);
+        String decisionMaker = memberService.findOrCreate(update.getCallbackQuery().getFrom()).getNickName();
+
+        ChatMember chatMember = chatMemberService.changeAndGetNewFacilitatorForChat(chatId, newFacilitatorId)
+                .orElseThrow(() -> {
+                    log.error("Chat member with id {} not found!", newFacilitatorId);
+                    return new NotFoundException("Chat member with id " + newFacilitatorId + " not found!");
+                });
+
+        log.info("For chat {} selected new facilitator {}", chatId, chatMember.getMember().getNickName());
         return new SendMessage(chatId.toString(), decisionMaker +
                 " выбрал следующего фасилитатора: " + chatMember.getMember().getNickName());
     }

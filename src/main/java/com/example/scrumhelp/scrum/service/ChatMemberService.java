@@ -23,6 +23,10 @@ public class ChatMemberService {
         return chatMemberRepository.findChatMemberByChat_IdAndMember_Id(chatId, memberId);
     }
 
+    public List<ChatMember> findChatMembersExceptFacilitator(Long chatId) {
+        return chatMemberRepository.findChatMembersByChat_IdAndIsFacilitator(chatId, false);
+    }
+
     public Optional<ChatMember> findFacilitatorForChat(Long chatId, Boolean isFacilitator) {
         return chatMemberRepository.findChatMemberByChat_IdAndIsFacilitator(chatId, isFacilitator);
     }
