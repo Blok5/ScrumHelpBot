@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
-@ConfigurationPropertiesScan("com.example.scrumhelp.scrum.config")
+@ConfigurationPropertiesScan("com.example.scrumhelp.telegram.client.config")
 public class ScrumHelpApplication {
 
     public static void main(String[] args) {

@@ -1,9 +1,9 @@
 package com.example.scrumhelp.scrum.service;
 
-import com.example.scrumhelp.telegram.client.exception.NotFoundException;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
+import com.example.scrumhelp.telegram.client.exception.NotFoundException;
 import com.example.scrumhelp.telegram.client.service.ScrumHelpBotService;
 import eye2web.modelmapper.ModelMapper;
 import org.junit.jupiter.api.Test;
@@ -13,6 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
@@ -23,6 +25,7 @@ import static com.example.scrumhelp.telegram.client.enums.DailyReminderState.*;
 import static com.example.scrumhelp.telegram.client.enums.Emoji.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -257,11 +260,47 @@ public class ScrumHelpBotServiceTest {
         when(chatMemberService.changeAndGetNewFacilitatorForChat(any(), any()))
                 .thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> scrumHelpBotService.sendSetFacilitatorSelectedMessage(1L));
+        assertThrows(NotFoundException.class,
+                () -> scrumHelpBotService.sendSetFacilitatorSelectedMessage(1L));
     }
 
     @Test
     void sendSetFacilitatorSelectedMessageWithNotEmptyCurrentFacilitatorShouldBeSuccess2arg() {
+        CallbackQuery callbackQueryMock = mock(CallbackQuery.class);
+        when(callbackQueryMock.getData()).thenReturn("id 1");
+        Update updateMock = mock(Update.class);
+        when(updateMock.getCallbackQuery()).thenReturn(callbackQueryMock);
 
+        Member memberFrom = new Member();
+        memberFrom.setId(1L);
+        when(memberService.findOrCreate(any())).thenReturn(memberFrom);
+
+        Member facilitator = new Member();
+        facilitator.setId(10L);
+        when(chatMemberService.changeAndGetNewFacilitatorForChat(1L, 1L))
+                .thenReturn(Optional.of(new ChatMember(facilitator, new Chat(1L), true))
+                );
+
+        SendMessage sendMessage = scrumHelpBotService.sendSetFacilitatorSelectedMessage(1L, updateMock);
+
+        assertEquals("1 выбрал следующего фасилитатора: 10", sendMessage.getText());
+    }
+
+    @Test
+    void sendSetFacilitatorSelectedMessageWithEmptyCurrentFacilitatorShouldBeException2arg() {
+        CallbackQuery callbackQueryMock = mock(CallbackQuery.class);
+        when(callbackQueryMock.getData()).thenReturn("id 1");
+        Update updateMock = mock(Update.class);
+        when(updateMock.getCallbackQuery()).thenReturn(callbackQueryMock);
+
+        Member memberFrom = new Member();
+        memberFrom.setId(1L);
+        when(memberService.findOrCreate(any())).thenReturn(memberFrom);
+
+        when(chatMemberService.changeAndGetNewFacilitatorForChat(1L, 1L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class,
+                () -> scrumHelpBotService.sendSetFacilitatorSelectedMessage(1L, updateMock));
     }
 }

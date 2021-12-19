@@ -160,9 +160,6 @@ public class ScrumHelpBotService {
                 chatMember.getMember().getNickName());
     }
 
-
-    //TODO: unit test sendSetFacilitatorSelectedMessage
-
     /**
      * Choose new facilitator and send message. If newFacilitatorId null then select randomly
      *
