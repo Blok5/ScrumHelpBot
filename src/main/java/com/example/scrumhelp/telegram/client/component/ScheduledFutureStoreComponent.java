@@ -1,4 +1,4 @@
-package com.example.scrumhelp.scrum.component;
+package com.example.scrumhelp.telegram.client.component;
 
 import org.springframework.stereotype.Component;
 

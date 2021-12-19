@@ -1,8 +1,10 @@
-package com.example.scrumhelp.scrum.config;
+package com.example.scrumhelp.telegram.client.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 @ConfigurationProperties(prefix = "telegram.bot")
+@Configuration
 public class TelegramBotConfig {
     private String botToken;
     private String botUserName;

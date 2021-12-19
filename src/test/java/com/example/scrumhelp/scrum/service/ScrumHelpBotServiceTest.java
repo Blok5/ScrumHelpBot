@@ -1,9 +1,11 @@
 package com.example.scrumhelp.scrum.service;
 
-import com.example.scrumhelp.scrum.exception.NotFoundException;
+import com.example.scrumhelp.telegram.client.exception.NotFoundException;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
+import com.example.scrumhelp.telegram.client.service.ScrumHelpBotService;
+import eye2web.modelmapper.ModelMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -17,8 +19,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import java.util.List;
 import java.util.Optional;
 
-import static com.example.scrumhelp.scrum.enums.DailyReminderState.*;
-import static com.example.scrumhelp.scrum.enums.Emoji.*;
+import static com.example.scrumhelp.telegram.client.enums.DailyReminderState.*;
+import static com.example.scrumhelp.telegram.client.enums.Emoji.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -32,6 +34,8 @@ public class ScrumHelpBotServiceTest {
     private ChatMemberService chatMemberService;
     @Mock
     private MemberService memberService;
+    @Mock
+    private ModelMapper modelMapper;
     @InjectMocks
     private ScrumHelpBotService scrumHelpBotService;
 
@@ -210,7 +214,7 @@ public class ScrumHelpBotServiceTest {
     }
 
     @Test
-    void sendSetFacilitatorSelectedMessageWithNotEmptyCurrentFacilitatorShouldBeSuccess() {
+    void sendSetFacilitatorSelectedMessageWithNotEmptyCurrentFacilitatorShouldBeSuccess1arg() {
         Chat chat = new Chat(1L);
         Member member1 = new Member();
         member1.setId(1L);
@@ -236,7 +240,7 @@ public class ScrumHelpBotServiceTest {
     }
 
     @Test
-    void sendSetFacilitatorSelectedMessageWithEmptyCurrentFacilitatorShouldBeException() {
+    void sendSetFacilitatorSelectedMessageWithEmptyCurrentFacilitatorShouldBeException1arg() {
         Chat chat = new Chat(1L);
         Member member1 = new Member();
         member1.setId(1L);
@@ -254,5 +258,10 @@ public class ScrumHelpBotServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> scrumHelpBotService.sendSetFacilitatorSelectedMessage(1L));
+    }
+
+    @Test
+    void sendSetFacilitatorSelectedMessageWithNotEmptyCurrentFacilitatorShouldBeSuccess2arg() {
+
     }
 }

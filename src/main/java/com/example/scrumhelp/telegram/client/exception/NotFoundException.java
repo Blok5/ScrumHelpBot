@@ -1,4 +1,4 @@
-package com.example.scrumhelp.scrum.exception;
+package com.example.scrumhelp.telegram.client.exception;
 
 public class NotFoundException extends RuntimeException {
     public NotFoundException(String message) {

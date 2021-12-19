@@ -1,4 +1,4 @@
-package com.example.scrumhelp.scrum.config;
+package com.example.scrumhelp.telegram.client.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

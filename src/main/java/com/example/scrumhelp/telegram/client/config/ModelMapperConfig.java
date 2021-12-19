@@ -1,4 +1,4 @@
-package com.example.scrumhelp.scrum.config;
+package com.example.scrumhelp.telegram.client.config;
 
 import eye2web.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;

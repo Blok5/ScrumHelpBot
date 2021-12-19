@@ -1,9 +1,11 @@
-package com.example.scrumhelp.scrum.service;
+package com.example.scrumhelp.telegram.client.service;
 
-import com.example.scrumhelp.scrum.enums.DailyReminderState;
-import com.example.scrumhelp.scrum.exception.NotFoundException;
+import com.example.scrumhelp.scrum.service.*;
+import com.example.scrumhelp.telegram.client.enums.DailyReminderState;
+import com.example.scrumhelp.telegram.client.exception.NotFoundException;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
+import eye2web.modelmapper.ModelMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
-import static com.example.scrumhelp.scrum.enums.Emoji.*;
+import static com.example.scrumhelp.telegram.client.enums.Emoji.*;
 import static java.lang.String.format;
 
 @Service
@@ -28,19 +30,22 @@ public class ScrumHelpBotService {
     private final ChatMemberService chatMemberService;
     private final MemberService memberService;
     private final ChatService chatService;
+    private final ModelMapper modelMapper;
 
     @Autowired
     public ScrumHelpBotService(ChatService chatService,
                                ChatMemberService chatMemberService,
-                               MemberService memberService) {
+                               MemberService memberService,
+                               ModelMapper modelMapper) {
         this.chatService = chatService;
         this.chatMemberService = chatMemberService;
         this.memberService = memberService;
+        this.modelMapper = modelMapper;
     }
 
     public SendMessage sendRegisterUserMessage(Long chatId, User fromUser) {
         SendMessage sendMessage = new SendMessage();
-        Member member = memberService.findOrCreate(fromUser);
+        Member member = memberService.findOrCreate(modelMapper.map(fromUser, Member.class));
 
         chatMemberService.findChatMemberForChat(chatId, member.getId()).ifPresentOrElse(
                 chatMember -> {
@@ -167,7 +172,10 @@ public class ScrumHelpBotService {
      */
     public SendMessage sendSetFacilitatorSelectedMessage(Long chatId, Update update) {
         Long newFacilitatorId = Long.parseLong(update.getCallbackQuery().getData().split(" ")[1]);
-        String decisionMaker = memberService.findOrCreate(update.getCallbackQuery().getFrom()).getNickName();
+
+        Member fromMember = memberService.findOrCreate(
+                modelMapper.map(update.getCallbackQuery().getFrom(), Member.class)
+        );
 
         ChatMember chatMember = chatMemberService.changeAndGetNewFacilitatorForChat(chatId, newFacilitatorId)
                 .orElseThrow(() -> {
@@ -176,7 +184,7 @@ public class ScrumHelpBotService {
                 });
 
         log.info("For chat {} selected new facilitator {}", chatId, chatMember.getMember().getNickName());
-        return new SendMessage(chatId.toString(), decisionMaker +
+        return new SendMessage(chatId.toString(), fromMember.getNickName() +
                 " выбрал следующего фасилитатора: " + chatMember.getMember().getNickName());
     }
 

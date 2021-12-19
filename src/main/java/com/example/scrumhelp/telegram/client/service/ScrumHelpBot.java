@@ -1,7 +1,7 @@
-package com.example.scrumhelp.scrum.service;
+package com.example.scrumhelp.telegram.client.service;
 
-import com.example.scrumhelp.scrum.component.ScheduledFutureStoreComponent;
-import com.example.scrumhelp.scrum.config.TelegramBotConfig;
+import com.example.scrumhelp.telegram.client.component.ScheduledFutureStoreComponent;
+import com.example.scrumhelp.telegram.client.config.TelegramBotConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -15,7 +15,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.TimeZone;
 
-import static com.example.scrumhelp.scrum.enums.DailyReminderState.*;
+import static com.example.scrumhelp.telegram.client.enums.DailyReminderState.*;
 
 @Service
 @EnableScheduling

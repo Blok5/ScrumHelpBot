@@ -1,4 +1,4 @@
-package com.example.scrumhelp.scrum.enums;
+package com.example.scrumhelp.telegram.client.enums;
 
 public enum Emoji {
     Memo("\uD83D\uDCDD"),
