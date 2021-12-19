@@ -1,5 +1,6 @@
 package com.example.scrumhelp.scrum.service;
 
+import com.example.scrumhelp.scrum.exception.NotFoundException;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
@@ -10,7 +11,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
-import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 
@@ -150,7 +150,7 @@ public class ScrumHelpBotServiceTest {
     void sendDailyReminderMessageNotSetCase() {
         SendMessage sendMessage = scrumHelpBotService.sendDailyReminderMessage(1L, NotSet);
         assertEquals("Напоминание о дейли еще не установлено!" + RedExclamation +
-        "\nДля включения напоминания /enableDailyReminder",
+                        "\nДля включения напоминания /enableDailyReminder",
                 sendMessage.getText()
         );
     }
@@ -159,7 +159,7 @@ public class ScrumHelpBotServiceTest {
     void sendDailyReminderMessageTurnedOnCase() {
         SendMessage sendMessage = scrumHelpBotService.sendDailyReminderMessage(1L, TurnedOn);
         assertEquals("Напоминание о дейли включено!" + CheckMarkButton + "\n" +
-                "Для выключения напоминания:\n/disableDailyReminder",
+                        "Для выключения напоминания:\n/disableDailyReminder",
                 sendMessage.getText());
     }
 
@@ -186,14 +186,14 @@ public class ScrumHelpBotServiceTest {
         Chat chat = new Chat(1L);
 
         when(chatMemberService.findChatMembers(any())).thenReturn(List.of(
-           new ChatMember(member1, chat, true),
-           new ChatMember(member2, chat, false),
-           new ChatMember(member3, chat, false)
+                new ChatMember(member1, chat, true),
+                new ChatMember(member2, chat, false),
+                new ChatMember(member3, chat, false)
         ));
 
         SendMessage sendMessage = scrumHelpBotService.sendSelectFacilitatorMessage(1L);
 
-        InlineKeyboardMarkup inlineKeyboardMarkup = (InlineKeyboardMarkup)sendMessage.getReplyMarkup();
+        InlineKeyboardMarkup inlineKeyboardMarkup = (InlineKeyboardMarkup) sendMessage.getReplyMarkup();
         assertAll(
                 () -> assertEquals("Выбери следующего фасилитатора:" + PoliceOfficer, sendMessage.getText()),
                 () -> assertEquals("/newFacilitator 1", inlineKeyboardMarkup.getKeyboard().get(0).get(0).getCallbackData()),
@@ -209,14 +209,50 @@ public class ScrumHelpBotServiceTest {
         assertEquals("Список зарегистрированных пользователей пуст", sendMessage.getText());
     }
 
-    //TODO: sendSetFacilitatorSelectedMessageWithUpdate
     @Test
-    void  sendSetFacilitatorSelectedMessageWithUpdate() {
+    void sendSetFacilitatorSelectedMessageWithNotEmptyCurrentFacilitatorShouldBeSuccess() {
+        Chat chat = new Chat(1L);
+        Member member1 = new Member();
+        member1.setId(1L);
+        Member member2 = new Member();
+        member2.setId(2L);
+
+        when(chatMemberService.findChatMembersExceptFacilitator(any())).thenReturn(
+                List.of(
+                        new ChatMember(member1, chat, false),
+                        new ChatMember(member2, chat, false)
+                )
+        );
+
+        Member facilitator = new Member();
+        facilitator.setId(10L);
+        when(chatMemberService.changeAndGetNewFacilitatorForChat(any(), any())).thenReturn(
+                Optional.of(new ChatMember(facilitator, chat, true))
+        );
+
+        SendMessage sendMessage = scrumHelpBotService.sendSetFacilitatorSelectedMessage(1L);
+
+        assertFalse(sendMessage.getText().isEmpty());
     }
 
-    //TODO: sendSetFacilitatorSelectedMessageWithNull
     @Test
-    void  sendSetFacilitatorSelectedMessageWithNull() {
+    void sendSetFacilitatorSelectedMessageWithEmptyCurrentFacilitatorShouldBeException() {
+        Chat chat = new Chat(1L);
+        Member member1 = new Member();
+        member1.setId(1L);
+        Member member2 = new Member();
+        member2.setId(2L);
 
+        when(chatMemberService.findChatMembersExceptFacilitator(any()))
+                .thenReturn(List.of(
+                                new ChatMember(member1, chat, false),
+                                new ChatMember(member2, chat, false)
+                        )
+                );
+
+        when(chatMemberService.changeAndGetNewFacilitatorForChat(any(), any()))
+                .thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> scrumHelpBotService.sendSetFacilitatorSelectedMessage(1L));
     }
 }

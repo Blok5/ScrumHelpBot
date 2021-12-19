@@ -132,8 +132,6 @@ public class ScrumHelpBotService {
         return new SendMessage(chatId.toString(), "Список зарегистрированных пользователей пуст");
     }
 
-    //TODO: unit test sendSetFacilitatorSelectedMessage
-
     /**
      * Choose new facilitator and send message. If newFacilitatorId null then select randomly
      *
@@ -153,8 +151,8 @@ public class ScrumHelpBotService {
                 });
 
         log.info("For chat {} selected new facilitator {}", chatId, chatMember.getMember().getNickName());
-        return new SendMessage(chatId.toString(), "Lucky" +
-                " выбрал следующего фасилитатора: " + chatMember.getMember().getNickName());
+        return new SendMessage(chatId.toString(), "Lucky выбрал следующего фасилитатора: " +
+                chatMember.getMember().getNickName());
     }
 
 
