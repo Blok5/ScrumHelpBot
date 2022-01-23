@@ -2,8 +2,8 @@ package com.example.scrumhelp.scrum.service;
 
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
+import com.example.scrumhelp.scrum.model.ChatMemberId;
 import com.example.scrumhelp.scrum.repository.ChatMemberRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -14,7 +14,6 @@ import java.util.Optional;
 public class ChatMemberServiceImpl implements ChatMemberService {
     private final ChatMemberRepository chatMemberRepository;
 
-    @Autowired
     public ChatMemberServiceImpl(ChatMemberRepository chatMemberRepository) {
         this.chatMemberRepository = chatMemberRepository;
     }
@@ -56,5 +55,11 @@ public class ChatMemberServiceImpl implements ChatMemberService {
         }
 
         return newFacilitatorOptional;
+    }
+
+    //TODO: unit test
+    @Override
+    public void removeChatMember(ChatMemberId chatMemberId) {
+        chatMemberRepository.deleteById(chatMemberId);
     }
 }

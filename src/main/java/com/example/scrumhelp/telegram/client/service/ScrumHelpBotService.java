@@ -1,13 +1,14 @@
 package com.example.scrumhelp.telegram.client.service;
 
-import com.example.scrumhelp.scrum.service.*;
-import com.example.scrumhelp.telegram.client.enums.DailyReminderState;
-import com.example.scrumhelp.telegram.client.exception.NotFoundException;
 import com.example.scrumhelp.scrum.model.ChatMember;
 import com.example.scrumhelp.scrum.model.Member;
+import com.example.scrumhelp.scrum.service.ChatMemberService;
+import com.example.scrumhelp.scrum.service.ChatService;
+import com.example.scrumhelp.scrum.service.MemberService;
+import com.example.scrumhelp.telegram.client.enums.DailyReminderState;
+import com.example.scrumhelp.telegram.client.exception.NotFoundException;
 import eye2web.modelmapper.ModelMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
@@ -32,7 +33,6 @@ public class ScrumHelpBotService {
     private final ChatService chatService;
     private final ModelMapper modelMapper;
 
-    @Autowired
     public ScrumHelpBotService(ChatService chatService,
                                ChatMemberService chatMemberService,
                                MemberService memberService,
@@ -122,9 +122,8 @@ public class ScrumHelpBotService {
                 }
             }
 
-            if (!keyboardButtonsRow.isEmpty()) {
+            if (!keyboardButtonsRow.isEmpty())
                 keyboardButtonsRowList.add(keyboardButtonsRow);
-            }
 
             InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
             keyboardMarkup.setKeyboard(keyboardButtonsRowList);
@@ -185,37 +184,80 @@ public class ScrumHelpBotService {
                 " выбрал следующего фасилитатора: " + chatMember.getMember().getNickName());
     }
 
+    /**
+     * Print user list for chat id
+     *
+     * @param chatId - chat id
+     * @return - mg
+     */
     public SendMessage sendUserListMessage(Long chatId) {
         StringBuilder responseText = new StringBuilder();
         responseText.append("Зарегистрированные пользователи:\n");
 
         List<ChatMember> chatMembers = chatMemberService.findChatMembers(chatId);
 
-        if (!chatMembers.isEmpty()) {
+        if (!chatMembers.isEmpty())
             chatMembers.forEach(chatMember -> responseText.append(chatMember.getMember().getNickName()).append("\n"));
-        } else {
+        else
             responseText.append("Список пуст");
-        }
 
         return new SendMessage(chatId.toString(), responseText.toString());
     }
 
+    /**
+     * Print possible user commands
+     *
+     * @param chatId - chat id
+     * @return - mg
+     */
     public SendMessage sendHelpMessage(Long chatId) {
         return new SendMessage(chatId.toString(),
                 "Список возможных команд:\n" +
-                        "/register - регистрация пользователя\n" +
+                        "/on - активация пользователя\n" +
+                        "/off - деактивация пользователя\n" +
                         "/getUserList - список участников\n" +
-                        "/setFacilitator - выбор фасилитатора\n" +
+                        "/setFacilitator - ручной выбор фасилитатора\n" +
                         "/luckyFacilitator - случайный выбор фасилитатора\n" +
                         "/enableDailyReminder - включить напоминание о дейли\n" +
                         "/disableDailyReminder- выключить напоминание о дейли\n"
         );
     }
 
+    /**
+     * Remove keyboardMarkup from prev mg
+     *
+     * @param chatId    - chat id
+     * @param messageId - mg id
+     * @return - EditMessageReplyMarkup
+     */
     public EditMessageReplyMarkup removeMarkupFromPreviousMessage(Long chatId, Integer messageId) {
         EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup();
         editMessageReplyMarkup.setChatId(chatId.toString());
         editMessageReplyMarkup.setMessageId(messageId);
         return editMessageReplyMarkup;
+    }
+
+    /**
+     * Send deactivate user message
+     *
+     * @param chatId - chat id
+     * @param from   - User
+     * @return - SendMessage
+     */
+    public SendMessage sendRemoveUserMessage(Long chatId, User from) {
+        SendMessage sendMessage = new SendMessage();
+
+        chatMemberService.findChatMemberForChat(chatId, from.getId()).ifPresentOrElse(chatMember -> {
+            chatMemberService.removeChatMember(chatMember.getChatMemberId());
+            sendMessage.setText(format("Пользователь %s деактивирован!%s",
+                            chatMember.getMember().getNickName(), PartyingFace));
+            log.info("For chat {} user {} removed", chatId, chatMember.getMember().getNickName());
+
+                }, () -> sendMessage.setText(format("Пользователь %s не зарегистрирован!%s",
+                        from.getId(), RedExclamation))
+        );
+
+        sendMessage.setChatId(chatId.toString());
+        return sendMessage;
     }
 }

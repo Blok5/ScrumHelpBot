@@ -3,7 +3,6 @@ package com.example.scrumhelp.scrum.service;
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.Member;
 import com.example.scrumhelp.scrum.repository.ChatRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -12,7 +11,6 @@ import java.util.Optional;
 public class ChatServiceImpl implements ChatService {
     private final ChatRepository chatRepository;
 
-    @Autowired
     public ChatServiceImpl(ChatRepository chatRepository) {
         this.chatRepository = chatRepository;
     }

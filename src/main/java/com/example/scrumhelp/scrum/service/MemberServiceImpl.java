@@ -2,7 +2,6 @@ package com.example.scrumhelp.scrum.service;
 
 import com.example.scrumhelp.scrum.model.Member;
 import com.example.scrumhelp.scrum.repository.MemberRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -11,7 +10,6 @@ import java.util.Optional;
 public class MemberServiceImpl implements MemberService{
     private final MemberRepository memberRepository;
 
-    @Autowired
     public MemberServiceImpl(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
     }

@@ -3,7 +3,6 @@ package com.example.scrumhelp.telegram.client.service;
 import com.example.scrumhelp.telegram.client.component.ScheduledFutureStoreComponent;
 import com.example.scrumhelp.telegram.client.config.TelegramBotConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
@@ -26,7 +25,6 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
     private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
     private final ScheduledFutureStoreComponent scheduledFutureStoreComponent;
 
-    @Autowired
     public ScrumHelpBot(ScrumHelpBotService scrumHelpBotService,
                         TelegramBotConfig telegramBotConfig,
                         ThreadPoolTaskScheduler threadPoolTaskScheduler,
@@ -52,8 +50,10 @@ public class ScrumHelpBot extends TelegramLongPollingBot {
                 String messageText = update.getMessage().getText();
                 Long chatId = update.getMessage().getChatId();
 
-                if ("/register".equals(messageText)) {
+                if ("/on".equals(messageText)) {
                     execute(scrumHelpBotService.sendRegisterUserMessage(chatId, update.getMessage().getFrom()));
+                } else if ("/off".equals(messageText) || update.getMessage().getLeftChatMember() != null) {
+                    execute(scrumHelpBotService.sendRemoveUserMessage(chatId, update.getMessage().getFrom()));
                 } else if ("/setFacilitator".equals(messageText)) {
                     execute(scrumHelpBotService.sendSelectFacilitatorMessage(chatId));
                 } else if ("/luckyFacilitator".equals(messageText)) {

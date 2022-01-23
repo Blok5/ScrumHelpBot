@@ -2,6 +2,7 @@ package com.example.scrumhelp.scrum.service;
 
 import com.example.scrumhelp.scrum.model.Chat;
 import com.example.scrumhelp.scrum.model.ChatMember;
+import com.example.scrumhelp.scrum.model.ChatMemberId;
 
 import javax.transaction.Transactional;
 import java.util.List;
@@ -20,4 +21,6 @@ public interface ChatMemberService {
 
     @Transactional
     Optional<ChatMember> changeAndGetNewFacilitatorForChat(Long chatId, Long newFacilitatorId);
+
+    void removeChatMember(ChatMemberId chatMemberId);
 }

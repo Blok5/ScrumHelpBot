@@ -1,11 +1,9 @@
 package com.example.scrumhelp.telegram.client.component;
 
 import com.example.scrumhelp.scrum.service.ChatMemberService;
-import com.example.scrumhelp.scrum.service.ChatMemberServiceImpl;
 import com.example.scrumhelp.telegram.client.service.ScrumHelpBot;
 import com.example.scrumhelp.telegram.client.service.ScrumHelpBotService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,13 +15,12 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 @Slf4j
 public class ScheduledSelectFacilitatorComponent {
     private final ScrumHelpBot scrumHelpBot;
-    private final ChatMemberServiceImpl chatMemberService;
+    private final ChatMemberService chatMemberService;
     private final ScrumHelpBotService scrumHelpBotService;
     private final TaskExecutor taskExecutor;
 
-    @Autowired
     public ScheduledSelectFacilitatorComponent(ScrumHelpBot scrumHelpBot,
-                                               ChatMemberServiceImpl chatMemberService,
+                                               ChatMemberService chatMemberService,
                                                ScrumHelpBotService scrumHelpBotService,
                                                TaskExecutor taskExecutor) {
         this.scrumHelpBot = scrumHelpBot;
